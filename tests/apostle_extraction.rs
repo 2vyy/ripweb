@@ -68,7 +68,7 @@ fn apostle_snapshot_reddit_thread_v2() {
     let json = include_str!("fixtures/apostles/reddit_thread.json");
     let content =
         ripweb::search::reddit::parse_reddit_json(json).expect("reddit JSON parse failed");
-    let md = ripweb::run::format_reddit(&content, 2);
+    let md = ripweb::run::format_reddit(&content, ripweb::mode::Mode::Balanced);
     insta::assert_snapshot!(md);
 }
 
@@ -76,7 +76,7 @@ fn apostle_snapshot_reddit_thread_v2() {
 fn apostle_snapshot_hn_item_v2() {
     let json = include_str!("fixtures/apostles/hn_item.json");
     let content = ripweb::search::hackernews::parse_hn_json(json).expect("HN JSON parse failed");
-    let md = ripweb::run::format_hn(&content, 2);
+    let md = ripweb::run::format_hn(&content, ripweb::mode::Mode::Balanced);
     insta::assert_snapshot!(md);
 }
 
@@ -85,14 +85,14 @@ fn apostle_snapshot_youtube_oembed() {
     let json = include_str!("fixtures/apostles/youtube_oembed.json");
     let oembed =
         ripweb::search::youtube::parse_youtube_oembed(json).expect("YouTube oEmbed parse failed");
-    let md = ripweb::search::youtube::format_youtube_content(&oembed, None, 2);
+    let md = ripweb::search::youtube::format_youtube_content(&oembed, None, ripweb::mode::Mode::Balanced);
     insta::assert_snapshot!(md);
 }
 
 #[test]
 fn apostle_snapshot_wikipedia_rust_v2() {
     let json = include_str!("fixtures/apostles/wikipedia_rust.json");
-    let md = ripweb::search::wikipedia::parse_wiki_summary(json, 2)
+    let md = ripweb::search::wikipedia::parse_wiki_summary(json, ripweb::mode::Mode::Balanced)
         .expect("Wikipedia JSON parse failed");
     insta::assert_snapshot!(md);
 }

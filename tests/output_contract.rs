@@ -1,82 +1,243 @@
 use ripweb::{
     extract::{Extractor, web::WebExtractor},
-    run::{format_generic, format_hn, format_reddit},
+    mode::Mode,
+    run::{format_generic, format_hn, format_reddit, format_search_results},
     search::{hackernews::HnContent, reddit::RedditContent},
 };
 use url::Url;
 
+// ── format_generic ────────────────────────────────────────────────────────────
+
 #[test]
-fn verbosity_tier_generic_enforcement() {
+fn compact_mode_generic_emits_delimiter_and_link() {
     let url = Url::parse("https://example.com/item").unwrap();
-    let text = "Line 1\nLine 2\nLine 3\n".repeat(100); // long text
-
-    // V1: Link only
-    let v1 = format_generic(&text, &url, 1);
-    assert!(v1.contains("- [Generic Page](https://example.com/item)"));
-    assert!(!v1.contains("Line 1"));
-
-    // V2: Snippet (2000 chars)
-    let v2 = format_generic(&text, &url, 2);
-    assert!(v2.contains("# Page: https://example.com/item"));
-    assert!(v2.contains("Line 1"));
-    assert!(v2.contains("... (truncated)"));
-    assert!(v2.len() > 1000 && v2.len() < 2100);
-
-    // V3: Full Context
-    let v3 = format_generic(&text, &url, 3);
-    assert!(v3.contains("Line 1"));
-    assert!(!v3.contains("... (truncated)"));
+    let out = format_generic("some text", &url, Mode::Compact);
+    assert!(
+        out.starts_with("# --- [Source:"),
+        "must start with source delimiter, got: {out:?}"
+    );
+    assert!(out.contains("- [Generic Page](https://example.com/item)"));
+    assert!(!out.contains("some text"), "compact must not include body text");
 }
 
 #[test]
-fn verbosity_tier_reddit_enforcement() {
+fn balanced_mode_generic_emits_delimiter_and_snippet() {
+    let url = Url::parse("https://example.com/item").unwrap();
+    let text = "Line 1\nLine 2\nLine 3\n".repeat(100);
+
+    let out = format_generic(&text, &url, Mode::Balanced);
+    assert!(
+        out.starts_with("# --- [Source:"),
+        "must start with source delimiter"
+    );
+    assert!(out.contains("Line 1"));
+    assert!(out.contains("... (truncated)"));
+}
+
+#[test]
+fn verbose_mode_generic_emits_full_content() {
+    let url = Url::parse("https://example.com/item").unwrap();
+    let text = "Line 1\nLine 2\n".repeat(100);
+
+    let out = format_generic(&text, &url, Mode::Verbose);
+    assert!(
+        out.starts_with("# --- [Source:"),
+        "must start with source delimiter"
+    );
+    assert!(!out.contains("... (truncated)"), "verbose must not truncate");
+    assert!(out.contains("Line 1"));
+}
+
+#[test]
+fn source_delimiter_strips_tracking_params() {
+    let url = Url::parse("https://example.com/item?utm_source=test&id=1").unwrap();
+    let out = format_generic("text", &url, Mode::Compact);
+    assert!(
+        !out.contains("utm_source"),
+        "source delimiter must strip tracking params"
+    );
+    assert!(out.contains("id=1"), "non-tracking params must be preserved");
+}
+
+// ── format_reddit ─────────────────────────────────────────────────────────────
+
+#[test]
+fn compact_mode_reddit_title_only() {
     let content = RedditContent {
         title: "Rust is great".into(),
         selftext: "Body text here".into(),
         comments: vec!["Comment 1".into(), "Comment 2".into(), "Comment 3".into()],
     };
-
-    // V1: Title only
-    let v1 = format_reddit(&content, 1);
-    assert!(v1.contains("- [Rust is great]"));
-    assert!(!v1.contains("Body text here"));
-
-    // V2: Title + 2 Comments
-    let v2 = format_reddit(&content, 2);
-    assert!(v2.contains("# Rust is great"));
-    assert!(v2.contains("Comment 2"));
-    assert!(!v2.contains("Comment 3"));
-
-    // V3: Full Context
-    let v3 = format_reddit(&content, 3);
-    assert!(v3.contains("Comment 3"));
+    let out = format_reddit(&content, Mode::Compact);
+    assert!(out.contains("- [Rust is great]"));
+    assert!(!out.contains("Body text here"));
 }
 
 #[test]
-fn verbosity_tier_hn_enforcement() {
+fn balanced_mode_reddit_top_two_comments() {
+    let content = RedditContent {
+        title: "Rust is great".into(),
+        selftext: "Body text here".into(),
+        comments: vec!["Comment 1".into(), "Comment 2".into(), "Comment 3".into()],
+    };
+    let out = format_reddit(&content, Mode::Balanced);
+    assert!(out.contains("# Rust is great"));
+    assert!(out.contains("Comment 2"));
+    assert!(!out.contains("Comment 3"), "balanced must cap at 2 comments");
+}
+
+#[test]
+fn verbose_mode_reddit_full_comment_tree() {
+    let content = RedditContent {
+        title: "Rust is great".into(),
+        selftext: "Body text here".into(),
+        comments: vec!["Comment 1".into(), "Comment 2".into(), "Comment 3".into()],
+    };
+    let out = format_reddit(&content, Mode::Verbose);
+    assert!(out.contains("Comment 3"));
+}
+
+// ── format_hn ─────────────────────────────────────────────────────────────────
+
+#[test]
+fn compact_mode_hn_title_only() {
     let content = HnContent {
         title: "Show HN: Ripweb".into(),
         text: Some("Check out this tool".into()),
         comments: (1..=10).map(|i| format!("Comment {i}")).collect(),
     };
-
-    // V1: Title only
-    let v1 = format_hn(&content, 1);
-    assert!(v1.contains("- [Show HN: Ripweb]"));
-    assert!(!v1.contains("Check out this tool"));
-
-    // V2: Title + 5 Comments
-    let v2 = format_hn(&content, 2);
-    assert!(v2.contains("# Show HN: Ripweb"));
-    assert!(v2.contains("Comment 5"));
-    assert!(!v2.contains("Comment 6"));
-
-    // V3: Full Context
-    let v3 = format_hn(&content, 3);
-    assert!(v3.contains("Comment 10"));
+    let out = format_hn(&content, Mode::Compact);
+    assert!(out.contains("- [Show HN: Ripweb]"));
+    assert!(!out.contains("Check out this tool"));
 }
 
-// ── Extraction Invariants ──────────────────────────────────────────────────
+#[test]
+fn balanced_mode_hn_top_five_comments() {
+    let content = HnContent {
+        title: "Show HN: Ripweb".into(),
+        text: Some("Check out this tool".into()),
+        comments: (1..=10).map(|i| format!("Comment {i}")).collect(),
+    };
+    let out = format_hn(&content, Mode::Balanced);
+    assert!(out.contains("# Show HN: Ripweb"));
+    assert!(out.contains("Comment 5"));
+    assert!(!out.contains("Comment 6"), "balanced must cap at 5 comments");
+}
+
+#[test]
+fn verbose_mode_hn_full_comments() {
+    let content = HnContent {
+        title: "Show HN: Ripweb".into(),
+        text: Some("Check out this tool".into()),
+        comments: (1..=10).map(|i| format!("Comment {i}")).collect(),
+    };
+    let out = format_hn(&content, Mode::Verbose);
+    assert!(out.contains("Comment 10"));
+}
+
+// ── format_search_results ─────────────────────────────────────────────────────
+
+#[test]
+fn compact_mode_search_link_list() {
+    let items = vec![ripweb::search::SearchResult {
+        title: "Result 1".into(),
+        url: "https://r1.com".into(),
+        snippet: Some("Snippet 1".into()),
+    }];
+    let out = format_search_results(&items, None, Mode::Compact, ripweb::cli::SearchEngine::Ddg);
+    assert_eq!(out, "- [Result 1](https://r1.com)");
+}
+
+#[test]
+fn balanced_mode_search_link_plus_snippet() {
+    let items = vec![ripweb::search::SearchResult {
+        title: "Result 1".into(),
+        url: "https://r1.com".into(),
+        snippet: Some("Snippet 1".into()),
+    }];
+    let out = format_search_results(&items, None, Mode::Balanced, ripweb::cli::SearchEngine::Ddg);
+    assert!(out.contains("> Snippet 1"));
+}
+
+#[test]
+fn verbose_mode_search_detailed_card_with_instant() {
+    let items = vec![ripweb::search::SearchResult {
+        title: "Result 1".into(),
+        url: "https://r1.com".into(),
+        snippet: Some("Snippet 1".into()),
+    }];
+    let out = format_search_results(
+        &items,
+        Some("Instant!"),
+        Mode::Verbose,
+        ripweb::cli::SearchEngine::Ddg,
+    );
+    assert!(out.contains("### [Result 1]"));
+    assert!(out.contains("> Instant!"));
+}
+
+// ── GitHub issue format ───────────────────────────────────────────────────────
+
+#[test]
+fn compact_mode_github_issue_list_format() {
+    let issue = ripweb::search::github::GithubIssue {
+        number: 1,
+        title: "Bug".into(),
+        body: Some("Description".into()),
+        labels: vec![],
+        user: ripweb::search::github::GithubUser { login: "alice".into() },
+        html_url: "https://github.com/a/b/issues/1".into(),
+    };
+    let comments = vec![ripweb::search::github::GithubComment {
+        body: Some("Comment 1".into()),
+        user: ripweb::search::github::GithubUser { login: "bob".into() },
+    }];
+
+    let out = ripweb::search::github::format_issue(&issue, &comments, Mode::Compact);
+    assert!(out.contains("- [#1] Bug"));
+    assert!(!out.contains("Description"));
+}
+
+#[test]
+fn balanced_mode_github_issue_op_only() {
+    let issue = ripweb::search::github::GithubIssue {
+        number: 1,
+        title: "Bug".into(),
+        body: Some("Description".into()),
+        labels: vec![],
+        user: ripweb::search::github::GithubUser { login: "alice".into() },
+        html_url: "https://github.com/a/b/issues/1".into(),
+    };
+    let comments = vec![ripweb::search::github::GithubComment {
+        body: Some("Comment 1".into()),
+        user: ripweb::search::github::GithubUser { login: "bob".into() },
+    }];
+
+    let out = ripweb::search::github::format_issue(&issue, &comments, Mode::Balanced);
+    assert!(out.contains("Description"));
+    assert!(!out.contains("Comment 1"), "balanced must omit comments");
+}
+
+#[test]
+fn verbose_mode_github_issue_with_comments() {
+    let issue = ripweb::search::github::GithubIssue {
+        number: 1,
+        title: "Bug".into(),
+        body: Some("Description".into()),
+        labels: vec![],
+        user: ripweb::search::github::GithubUser { login: "alice".into() },
+        html_url: "https://github.com/a/b/issues/1".into(),
+    };
+    let comments = vec![ripweb::search::github::GithubComment {
+        body: Some("Comment 1".into()),
+        user: ripweb::search::github::GithubUser { login: "bob".into() },
+    }];
+
+    let out = ripweb::search::github::format_issue(&issue, &comments, Mode::Verbose);
+    assert!(out.contains("Comment 1"));
+}
+
+// ── Extraction invariants ─────────────────────────────────────────────────────
 
 #[test]
 fn markdown_extraction_normalization() {
@@ -84,67 +245,6 @@ fn markdown_extraction_normalization() {
     let result = WebExtractor::extract(html, Some("text/html")).unwrap();
     assert!(result.contains("# Title"));
     assert!(result.contains("[Link](https://example.com/path?id=2)")); // stripped utm_source
-}
-
-#[test]
-fn verbosity_tier_search_results_enforcement() {
-    let items = vec![ripweb::search::SearchResult {
-        title: "Result 1".into(),
-        url: "https://r1.com".into(),
-        snippet: Some("Snippet 1".into()),
-    }];
-
-    // V1: Link list
-    let v1 = ripweb::run::format_search_results(&items, None, 1, ripweb::cli::SearchEngine::Ddg);
-    assert_eq!(v1, "- [Result 1](https://r1.com)");
-
-    // V2: Link + Snippet
-    let v2 = ripweb::run::format_search_results(&items, None, 2, ripweb::cli::SearchEngine::Ddg);
-    assert!(v2.contains("> Snippet 1"));
-
-    // V3: Detailed
-    let v3 = ripweb::run::format_search_results(
-        &items,
-        Some("Instant!"),
-        3,
-        ripweb::cli::SearchEngine::Ddg,
-    );
-    assert!(v3.contains("### [Result 1]"));
-    assert!(v3.contains("> Instant!"));
-}
-
-#[test]
-fn verbosity_tier_github_issue_enforcement() {
-    let issue = ripweb::search::github::GithubIssue {
-        number: 1,
-        title: "Bug".into(),
-        body: Some("Description".into()),
-        labels: vec![],
-        user: ripweb::search::github::GithubUser {
-            login: "alice".into(),
-        },
-        html_url: "https://github.com/a/b/issues/1".into(),
-    };
-    let comments = vec![ripweb::search::github::GithubComment {
-        body: Some("Comment 1".into()),
-        user: ripweb::search::github::GithubUser {
-            login: "bob".into(),
-        },
-    }];
-
-    // V1: List format
-    let v1 = ripweb::search::github::format_issue(&issue, &comments, 1);
-    assert!(v1.contains("- [#1] Bug"));
-    assert!(!v1.contains("Description"));
-
-    // V2: OP only
-    let v2 = ripweb::search::github::format_issue(&issue, &comments, 2);
-    assert!(v2.contains("Description"));
-    assert!(!v2.contains("Comment 1"));
-
-    // V3: Full
-    let v3 = ripweb::search::github::format_issue(&issue, &comments, 3);
-    assert!(v3.contains("Comment 1"));
 }
 
 #[test]
