@@ -6,28 +6,22 @@
 
 use url::Url;
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum DdgError {
-    Network(rquest::Error),
+    #[error("network error: {0}")]
+    Network(#[from] rquest::Error),
+    #[error("DuckDuckGo returned no results")]
     NoResults,
-}
-
-impl std::fmt::Display for DdgError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Network(e) => write!(f, "network error: {e}"),
-            Self::NoResults => write!(f, "DuckDuckGo returned no results"),
-        }
-    }
+    #[error("URL parse error: {0}")]
+    Parse(#[from] url::ParseError),
 }
 
 /// Build the DDG HTML search endpoint URL for `query`.
-pub fn ddg_search_url(query: &str) -> Url {
-    let mut url =
-        Url::parse("https://html.duckduckgo.com/html/").expect("base URL is always valid");
+pub fn ddg_search_url(query: &str) -> Result<Url, url::ParseError> {
+    let mut url = Url::parse("https://html.duckduckgo.com/html/")?;
     url.query_pairs_mut().append_pair("q", query);
-    url
+    Ok(url)
 }
 
 /// Extract result URLs from a DDG HTML response body.
@@ -101,7 +95,7 @@ pub async fn search(
     query: &str,
     limit: usize,
 ) -> Result<Vec<super::SearchResult>, DdgError> {
-    let url = ddg_search_url(query);
+    let url = ddg_search_url(query)?;
     let resp = client
         .get(url.as_str())
         .send()

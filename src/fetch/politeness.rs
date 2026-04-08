@@ -29,7 +29,10 @@ impl DomainSemaphores {
     ///
     /// The host key is normalised to lowercase so that `Example.Com` and
     /// `EXAMPLE.COM` share the same semaphore.
-    pub async fn acquire(&self, host: &str) -> OwnedDomainPermit {
+    pub async fn acquire(
+        &self,
+        host: &str,
+    ) -> Result<OwnedDomainPermit, crate::error::RipwebError> {
         let key = host.to_ascii_lowercase();
         let sem = self
             .map
@@ -42,9 +45,9 @@ impl DomainSemaphores {
         let permit = Arc::clone(&sem)
             .acquire_owned()
             .await
-            .expect("semaphore closed — this should never happen");
+            .map_err(|_| crate::error::RipwebError::Config("Semaphore closed".into()))?;
 
-        OwnedDomainPermit { _permit: permit }
+        Ok(OwnedDomainPermit { _permit: permit })
     }
 }
 

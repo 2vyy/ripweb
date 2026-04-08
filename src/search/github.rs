@@ -8,22 +8,15 @@ use url::Url;
 
 use crate::router::GitHubRouteType;
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum GithubError {
+    #[error("network error: {0}")]
     Network(String),
+    #[error("not found")]
     NotFound,
+    #[error("parse error: {0}")]
     Parse(String),
-}
-
-impl std::fmt::Display for GithubError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Network(e) => write!(f, "network error: {e}"),
-            Self::NotFound => write!(f, "not found"),
-            Self::Parse(e) => write!(f, "parse error: {e}"),
-        }
-    }
 }
 
 pub async fn handle_github(
@@ -55,11 +48,10 @@ pub async fn handle_github(
 
 // ── README ──────────────────────────────────────────────────────────────────
 
-fn github_raw_url(owner: &str, repo: &str) -> Url {
+fn github_raw_url(owner: &str, repo: &str) -> Result<Url, url::ParseError> {
     Url::parse(&format!(
         "https://raw.githubusercontent.com/{owner}/{repo}/HEAD/README.md"
     ))
-    .expect("statically-constructed URL is always valid")
 }
 
 async fn fetch_readme(
@@ -67,7 +59,7 @@ async fn fetch_readme(
     owner: &str,
     repo: &str,
 ) -> Result<String, GithubError> {
-    let url = github_raw_url(owner, repo);
+    let url = github_raw_url(owner, repo).map_err(|e| GithubError::Parse(e.to_string()))?;
     let mut req = client.get(url.as_str());
     if let Ok(t) = std::env::var("GITHUB_TOKEN") {
         req = req.header("Authorization", format!("Bearer {t}"));

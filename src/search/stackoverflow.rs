@@ -22,21 +22,19 @@ pub struct SoAnswer {
 ///
 /// Uses `withbody` filter so the answer body is included.
 /// Responses are gzip-compressed; the HTTP client must decompress them.
-pub fn so_answers_url(question_id: u64) -> Url {
+pub fn so_answers_url(question_id: u64) -> Result<Url, url::ParseError> {
     Url::parse(&format!(
         "https://api.stackexchange.com/2.3/questions/{question_id}/answers\
          ?order=desc&sort=votes&site=stackoverflow&filter=withbody"
     ))
-    .expect("statically-constructed URL is always valid")
 }
 
 /// Build the SE API URL to fetch a question's details (title + body).
-pub fn so_question_url(question_id: u64) -> Url {
+pub fn so_question_url(question_id: u64) -> Result<Url, url::ParseError> {
     Url::parse(&format!(
         "https://api.stackexchange.com/2.3/questions/{question_id}\
          ?site=stackoverflow&filter=withbody"
     ))
-    .expect("statically-constructed URL is always valid")
 }
 
 /// Extract the SO question ID from a URL like

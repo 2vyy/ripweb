@@ -22,7 +22,7 @@ use ripweb::{
 };
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     setup_tracing(cli.verbose);
 
@@ -33,21 +33,19 @@ async fn main() {
                 Ok(()) => eprintln!("Cache cleared: {}", dir.display()),
                 Err(e) if e.kind() == io::ErrorKind::NotFound => eprintln!("Cache already empty."),
                 Err(e) => {
-                    eprintln!("Error clearing cache: {e}");
-                    std::process::exit(1);
+                    anyhow::bail!("Error clearing cache: {e}");
                 }
             }
         } else {
             eprintln!("Could not determine XDG cache directory.");
         }
-        return;
+        return Ok(());
     }
 
     let input = match &cli.query_or_url {
         Some(s) => s.as_str(),
         None => {
-            eprintln!("Error: a URL or query is required.");
-            std::process::exit(1);
+            anyhow::bail!("Error: a URL or query is required.");
         }
     };
 
@@ -56,7 +54,7 @@ async fn main() {
         let pb = ProgressBar::new_spinner();
         pb.set_style(
             ProgressStyle::with_template("{spinner:.cyan} {msg}")
-                .unwrap()
+                .unwrap_or_else(|_| ProgressStyle::default_spinner())
                 .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]),
         );
         pb.enable_steady_tick(Duration::from_millis(80));
@@ -70,8 +68,7 @@ async fn main() {
         Ok(c) => c,
         Err(e) => {
             finish_spinner(&spinner);
-            eprintln!("Error building HTTP client: {e}");
-            std::process::exit(1);
+            anyhow::bail!("Error building HTTP client: {e}");
         }
     });
 
@@ -108,22 +105,22 @@ async fn main() {
         write_stdout(&format!(
             "Pages: {page_count} | Raw Size: {size_mb:.2} MB | Tokens: {tokens}\n"
         ));
-        return;
+        return Ok(());
     }
 
     if cli.copy {
         match arboard::Clipboard::new().and_then(|mut b| b.set_text(&text).map(|_| ())) {
             Ok(()) => eprintln!("Copied to clipboard."),
             Err(e) => {
-                eprintln!("Clipboard error: {e}");
-                std::process::exit(1);
+                anyhow::bail!("Clipboard error: {e}");
             }
         }
-        return;
+        return Ok(());
     }
 
     write_stdout(&text);
     write_stdout("\n");
+    Ok(())
 }
 
 fn write_stdout(text: &str) {

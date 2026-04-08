@@ -1,6 +1,7 @@
 /target
 /build
 /*.html
+.worktrees/
 *.csv.worktrees/
 *.csv
 docs/superpowers/*

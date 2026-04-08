@@ -94,14 +94,14 @@ const REDDIT_FIXTURE: &str = r#"[
 
 #[test]
 fn ddg_url_points_to_html_endpoint() {
-    let url = ddg_search_url("rust async");
+    let url = ddg_search_url("rust async").unwrap();
     assert_eq!(url.host_str(), Some("html.duckduckgo.com"));
     assert_eq!(url.path(), "/html/");
 }
 
 #[test]
 fn ddg_url_encodes_query_in_q_param() {
-    let url = ddg_search_url("rust async traits");
+    let url = ddg_search_url("rust async traits").unwrap();
     let q: Vec<_> = url
         .query_pairs()
         .filter(|(k, _)| k == "q")
@@ -164,19 +164,19 @@ fn ddg_parse_returns_empty_on_no_results() {
 
 #[test]
 fn hn_api_url_points_to_algolia() {
-    let url = hn_api_url("12345");
+    let url = hn_api_url("12345").unwrap();
     assert_eq!(url.host_str(), Some("hn.algolia.com"), "host: {url}");
 }
 
 #[test]
 fn hn_api_url_includes_item_id_in_path() {
-    let url = hn_api_url("99999");
+    let url = hn_api_url("99999").unwrap();
     assert!(url.path().contains("99999"), "path: {}", url.path());
 }
 
 #[test]
 fn hn_api_url_uses_v1_items_endpoint() {
-    let url = hn_api_url("12345");
+    let url = hn_api_url("12345").unwrap();
     assert!(
         url.path().starts_with("/api/v1/items/"),
         "path: {}",

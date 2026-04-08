@@ -38,13 +38,7 @@ pub fn render_tag(tag: &tl::HTMLTag, parser: &tl::Parser) -> String {
         "thead" | "tbody" | "tfoot" | "tr" => render_children_blocks(tag, parser),
         "th" | "td" => render_children_inline(tag, parser),
         "main" | "article" | "body" => render_children_blocks(tag, parser),
-        "section" | "div" | "aside" => {
-            let rendered = render_children_blocks(tag, parser);
-            if prune_sidebar(&rendered, tag, parser) {
-                return String::new();
-            }
-            rendered
-        }
+        "section" | "div" | "aside" => evaluate_block_saturation(tag, parser).unwrap_or_default(),
         "span" | "small" | "time" | "label" | "summary" | "details" => {
             render_children_inline(tag, parser)
         }
@@ -73,64 +67,64 @@ pub fn cleanup_markdown(text: &str) -> String {
     out.trim().to_owned()
 }
 
-fn prune_sidebar(rendered: &str, tag: &tl::HTMLTag, parser: &tl::Parser) -> bool {
-    if rendered.len() < 30 {
-        return false;
+fn get_text_lengths(node: &tl::Node, parser: &tl::Parser, in_link: bool) -> (usize, usize) {
+    let mut total = 0;
+    let mut link_total = 0;
+
+    match node {
+        tl::Node::Raw(b) => {
+            let len = b.as_utf8_str().trim().len();
+            total += len;
+            if in_link {
+                link_total += len;
+            }
+        }
+        tl::Node::Tag(tag) => {
+            let is_link = in_link || tag.name().as_utf8_str().eq_ignore_ascii_case("a");
+            for child in tag.children().top().iter() {
+                if let Some(c) = child.get(parser) {
+                    let (t, l) = get_text_lengths(c, parser, is_link);
+                    total += t;
+                    link_total += l;
+                }
+            }
+        }
+        _ => {}
     }
+    (total, link_total)
+}
+
+/// Evaluates if a block is a sidebar/nav by calculating Link Saturation from the AST.
+/// Returns `Some(MarkdownString)` if the block should be kept, or `None` if pruned.
+fn evaluate_block_saturation(tag: &tl::HTMLTag, parser: &tl::Parser) -> Option<String> {
+    let (total_text, link_text) = get_text_lengths(&tl::Node::Tag(tag.clone()), parser, false);
+
+    // Fast path: safe if too small or saturation is low
+    if total_text < 30 || (link_text as f64 / total_text as f64) <= 0.4 {
+        return Some(render_children_blocks(tag, parser));
+    }
+
     // Protect blocks containing technical spec tables
     if let Some(mut tables) = tag.query_selector(parser, "table")
         && tables.next().is_some()
     {
-        return false;
+        return Some(render_children_blocks(tag, parser));
     }
 
-    let mut link_chars = 0;
-    let mut clean_len = 0;
-    let mut in_bracket = false;
-    let mut in_paren = false;
-    let mut prev = '\0';
+    // Saturation is high. Could be a legitimate listing page or a bloated sidebar.
+    // We render it and check layout stats.
+    let rendered = render_children_blocks(tag, parser);
+    let clean = cleanup_markdown(&rendered);
+    let stats = crate::extract::candidate::score_text(&clean);
 
-    for c in rendered.chars() {
-        if c == '[' && prev != '!' {
-            in_bracket = true;
-            clean_len += 1;
-        } else if c == ']' && in_bracket {
-            in_bracket = false;
-            clean_len += 1;
-        } else if c == '(' && prev == ']' {
-            in_paren = true;
-        } else if c == ')' && in_paren {
-            in_paren = false;
-        } else if in_paren {
-            // skip url characters in density calculation
-            continue;
-        } else {
-            clean_len += 1;
-            if in_bracket {
-                link_chars += 1;
-            }
-        }
-        prev = c;
+    let is_sidebar_list = stats.list_items >= 4 && stats.paragraphs <= 2;
+    let is_listing = stats.paragraphs >= 3 && stats.short_lines >= 4;
+
+    if is_listing && !is_sidebar_list {
+        return Some(rendered);
     }
 
-    let saturation = if clean_len > 0 {
-        link_chars as f64 / clean_len as f64
-    } else {
-        0.0
-    };
-
-    if saturation > 0.4 {
-        let clean = cleanup_markdown(rendered);
-        let stats = crate::extract::candidate::score_text(&clean);
-        let is_sidebar_list = stats.list_items >= 4 && stats.paragraphs <= 2;
-        let is_listing = stats.paragraphs >= 3 && stats.short_lines >= 4;
-
-        if is_listing && !is_sidebar_list {
-            return false;
-        }
-        return true;
-    }
-    false
+    None // Prune it
 }
 
 pub fn extract_body_markdown(dom: &tl::VDom) -> String {

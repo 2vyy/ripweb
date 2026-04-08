@@ -140,9 +140,13 @@ fn extract_score(tag: &tl::HTMLTag, parser: &tl::Parser) -> i32 {
         if let Some(mut nodes) = tag.query_selector(parser, selector)
             && let Some(handle) = nodes.next()
         {
-            let text = handle.get(parser).unwrap().inner_text(parser);
-            if let Some(score) = parse_numeric_score(&text) {
-                return score;
+            if let Some(node) = handle.get(parser) {
+                let text = node.inner_text(parser);
+                if let Some(score) = parse_numeric_score(&text) {
+                    return score;
+                }
+            } else {
+                tracing::debug!("Failed to resolve score node handle in forum extraction");
             }
         }
     }
