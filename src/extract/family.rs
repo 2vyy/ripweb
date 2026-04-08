@@ -143,3 +143,74 @@ pub fn count_spec_markers(text: &str) -> usize {
         })
         .count()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::extract::render::{render_tag, cleanup_markdown};
+    use crate::extract::candidate::score_text;
+
+    #[test]
+    fn classifies_docs_candidates() {
+        let html = r#"<html><body>
+          <div class="docs reference-content">
+            <h1>API Reference</h1><h2>Example</h2>
+            <pre><code>fn main() { println!("hi"); }</code></pre>
+            <ul><li>Item</li><li>Other</li></ul>
+          </div></body></html>"#;
+        let dom = tl::parse(html, tl::ParserOptions::default()).unwrap();
+        let parser = dom.parser();
+        let tag = dom.query_selector("div")
+            .and_then(|mut it| it.next())
+            .and_then(|h| h.get(parser))
+            .and_then(|n| n.as_tag())
+            .unwrap();
+        let rendered = cleanup_markdown(&render_tag(tag, parser));
+        let stats = score_text(&rendered);
+        assert_eq!(classify_candidate_family(tag, &rendered, &stats, PageFamily::Generic), PageFamily::Docs);
+    }
+
+    #[test]
+    fn classifies_article_candidates() {
+        let html = r#"<html><body>
+          <article class="story-body">
+            <h1>Story Title</h1>
+            <p>One two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twenty-one twenty-two twenty-three twenty-four.</p>
+            <p>Another paragraph with enough prose to look like a real article rather than a sparse card or utility block.</p>
+            <p>A third paragraph keeps the article heuristic clearly on the prose-heavy side for classification.</p>
+          </article></body></html>"#;
+        let dom = tl::parse(html, tl::ParserOptions::default()).unwrap();
+        let parser = dom.parser();
+        let tag = dom.query_selector("article")
+            .and_then(|mut it| it.next())
+            .and_then(|h| h.get(parser))
+            .and_then(|n| n.as_tag())
+            .unwrap();
+        let rendered = cleanup_markdown(&render_tag(tag, parser));
+        let stats = score_text(&rendered);
+        assert_eq!(classify_candidate_family(tag, &rendered, &stats, PageFamily::Generic), PageFamily::Article);
+    }
+
+    #[test]
+    fn classifies_product_candidates() {
+        let html = r#"<html><body>
+          <section class="product-details buybox">
+            <h1>Ip Man 1-4 (Box Set) (Blu-ray)</h1>
+            <p>Current price is USD$22.99</p>
+            <h2>Key item features</h2>
+            <ul><li>Action, Biography, Drama</li><li>Movie &amp; tv media format: Blu-ray</li></ul>
+            <h2>Specifications</h2>
+            <table><tr><th>Director</th><td>Wilson Yip</td></tr><tr><th>Resolution</th><td>1080p</td></tr></table>
+          </section></body></html>"#;
+        let dom = tl::parse(html, tl::ParserOptions::default()).unwrap();
+        let parser = dom.parser();
+        let tag = dom.query_selector("section")
+            .and_then(|mut it| it.next())
+            .and_then(|h| h.get(parser))
+            .and_then(|n| n.as_tag())
+            .unwrap();
+        let rendered = cleanup_markdown(&render_tag(tag, parser));
+        let stats = score_text(&rendered);
+        assert_eq!(classify_candidate_family(tag, &rendered, &stats, PageFamily::Generic), PageFamily::Product);
+    }
+}
