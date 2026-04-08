@@ -323,6 +323,33 @@ fn torture_content_in_table_is_extracted() {
 }
 
 #[test]
+fn prefers_real_content_over_link_heavy_main() {
+    let html = br#"
+    <html><body>
+      <main>
+        <nav>
+          <a href="/1">Link 1</a><a href="/2">Link 2</a><a href="/3">Link 3</a>
+          <a href="/4">Link 4</a><a href="/5">Link 5</a><a href="/6">Link 6</a>
+          <a href="/7">Link 7</a><a href="/8">Link 8</a><a href="/9">Link 9</a>
+          <a href="/10">Link 10</a>
+        </nav>
+      </main>
+      <section class="story">
+        <h1>Actual Story</h1>
+        <p>This is a long paragraph of text that should be preferred over the link-heavy main container.
+        It has many words and very few links, making it a much better candidate for extraction.</p>
+      </section>
+    </body></html>
+    "#;
+
+    let result = WebExtractor::extract(html, Some("text/html; charset=utf-8")).unwrap();
+
+    assert!(result.contains("# Actual Story"), "story heading missing: {result}");
+    assert!(result.contains("long paragraph of text"), "story content missing: {result}");
+    assert!(!result.contains("Link 1"), "link-heavy main should have been penalized: {result}");
+}
+
+#[test]
 fn product_family_url_hint_prefers_buybox_over_link_grid() {
     let html = br#"
     <html><body>

@@ -13,6 +13,7 @@ pub enum PageFamily {
 #[derive(Default)]
 pub struct TextStats {
     pub word_count: usize,
+    pub total_text_len: usize,
     pub headings: usize,
     pub paragraphs: usize,
     pub code_fences: usize,

@@ -32,6 +32,7 @@ pub fn word_count(s: &str) -> usize {
 pub fn score_text(text: &str) -> TextStats {
     let mut stats = TextStats {
         word_count: word_count(text),
+        total_text_len: text.len(),
         ..TextStats::default()
     };
     let mut in_code_fence = false;
@@ -92,13 +93,10 @@ pub fn extract_best_candidate(dom: &tl::VDom, source_url: Option<&str>) -> Strin
             }
         }
     }
-    if let Some(body) = dom
-        .query_selector("body")
-        .and_then(|mut hits| hits.next())
-        .and_then(|handle| handle.get(parser))
-        .and_then(|node| node.as_tag())
-    {
-        consider_candidate(&mut best, score_candidate(body, parser, url_family));
+    if let Some(body_handle) = dom.query_selector("body").and_then(|mut hits| hits.next()) {
+        if let Some(body_tag) = body_handle.get(parser).and_then(|node| node.as_tag()) {
+            consider_candidate(&mut best, score_candidate(body_tag, parser, url_family));
+        }
     }
 
     best.map(|c| c.text)
@@ -137,12 +135,30 @@ fn score_candidate(
     score += (stats.headings as i64) * 18;
     score += (stats.code_fences as i64) * 20;
     score += (stats.list_items as i64) * 10;
-    score -= (stats.link_count as i64) * 6;
+
+    // Link density penalty: prioritize nodes with high text-to-link ratio
+    let link_ratio = if stats.total_text_len > 0 {
+        (stats.link_count as f64 * 30.0) / stats.total_text_len as f64
+    } else {
+        0.0
+    };
+    if link_ratio > 0.4 {
+        score -= (score as f64 * (link_ratio.min(1.0))) as i64;
+    }
+    score -= (stats.link_count as i64) * 4;
     score -= (stats.short_lines as i64) * 2;
 
     score += match name.as_str() {
-        "article" => 80,
-        "main" => 60,
+        "article" => {
+            let mut boost = 80;
+            if stats.word_count > 150 { boost += 40; }
+            boost
+        }
+        "main" => {
+            let mut boost = 60;
+            if stats.word_count > 150 { boost += 30; }
+            boost
+        }
         "section" => 20,
         "div" => 10,
         "table" => 12,
@@ -156,6 +172,10 @@ fn score_candidate(
         .collect::<Vec<_>>()
         .join(" ")
         .to_ascii_lowercase();
+
+    if hint_text.contains("main-content") || hint_text.contains("primary-content") {
+        score += 35;
+    }
 
     for hint in POSITIVE_HINTS {
         if hint_text.contains(hint) { score += 24; }
