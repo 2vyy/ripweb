@@ -69,6 +69,10 @@ async fn cli_v1_produces_single_link_line() {
         trimmed.contains(&url),
         "v1 output must contain the source URL: {trimmed}"
     );
+    assert!(
+        trimmed.contains("]("),
+        "v1 output must be a valid markdown link: {trimmed}"
+    );
 }
 
 // ── Verbosity 2: snippet with header ─────────────────────────────────────────
@@ -139,16 +143,14 @@ async fn cli_v3_produces_full_content_without_truncation() {
 
 // ── V2 is shorter than V3 on the same content ────────────────────────────────
 
-// IGNORED: On bloated_generic.html the extracted text fits within 2000 chars at v2 already,
-// so the `# Page:` header and `... (truncated)` marker added by v2 make it *longer* than v3
-// (which emits raw text with no framing). This is a real ripweb behaviour: v2 can exceed v3
-// in byte length when the raw content is near but below the 2000-char snippet threshold.
-#[ignore]
+// Uses stackoverflow_accepted.html (1.1MB) because it produces well over 2000 chars of
+// extracted Markdown, ensuring v2 truncates while v3 does not, validating that v2 is
+// legitimately shorter due to the 2000-char snippet limit.
 #[tokio::test]
 async fn cli_v2_output_is_shorter_than_v3() {
     let server_v2 = MockServer::start().await;
     let server_v3 = MockServer::start().await;
-    let html = std::fs::read("tests/fixtures/extract/bloated_generic.html").unwrap();
+    let html = fixture_html("stackoverflow_accepted.html");
 
     serve_html(&server_v2, "/page", html.clone()).await;
     serve_html(&server_v3, "/page", html).await;
@@ -180,6 +182,7 @@ async fn cli_v2_output_is_shorter_than_v3() {
 // non-2xx HTTP status codes as a non-zero process exit code. This is a real
 // ripweb behaviour gap — fixing it is out of scope for this test task.
 #[ignore]
+// TODO: track in GitHub issues once repo goes public
 #[tokio::test]
 async fn cli_404_exits_nonzero() {
     let server = MockServer::start().await;
@@ -203,6 +206,7 @@ async fn cli_404_exits_nonzero() {
 // IGNORED: ripweb currently exits 0 on HTTP 500. Same issue as 404 — the binary
 // does not treat non-2xx HTTP responses as process-level failures.
 #[ignore]
+// TODO: track in GitHub issues once repo goes public
 #[tokio::test]
 async fn cli_500_exits_nonzero() {
     let server = MockServer::start().await;
@@ -232,6 +236,7 @@ async fn cli_500_exits_nonzero() {
 // (e.g. application/pdf). The binary does not gate on MIME type before attempting
 // extraction. This is a real ripweb behaviour gap — fixing it is out of scope.
 #[ignore]
+// TODO: track in GitHub issues once repo goes public
 #[tokio::test]
 async fn cli_binary_content_type_exits_nonzero() {
     let server = MockServer::start().await;
