@@ -160,3 +160,87 @@ fn arxiv_pdf_url_extracts_paper_id() {
     };
     assert_eq!(paper_id, "1706.03762");
 }
+
+// ── YouTube ───────────────────────────────────────────────────────────────────
+
+#[test]
+fn youtube_watch_url_extracts_video_id() {
+    let Route::Url(PlatformRoute::YouTube { video_id, .. }) =
+        route("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+    else {
+        panic!("expected YouTube route");
+    };
+    assert_eq!(video_id, "dQw4w9WgXcQ");
+}
+
+#[test]
+fn youtube_short_url_extracts_video_id() {
+    let Route::Url(PlatformRoute::YouTube { video_id, .. }) =
+        route("https://youtu.be/dQw4w9WgXcQ")
+    else {
+        panic!("expected YouTube route");
+    };
+    assert_eq!(video_id, "dQw4w9WgXcQ");
+}
+
+#[test]
+fn youtube_shorts_url_extracts_video_id() {
+    let Route::Url(PlatformRoute::YouTube { video_id, .. }) =
+        route("https://www.youtube.com/shorts/abc123")
+    else {
+        panic!("expected YouTube route");
+    };
+    assert_eq!(video_id, "abc123");
+}
+
+#[test]
+fn youtube_channel_page_falls_through_to_generic() {
+    assert!(matches!(
+        route("https://www.youtube.com/@rustlang"),
+        Route::Url(PlatformRoute::Generic(_))
+    ));
+}
+
+// ── X / Twitter ───────────────────────────────────────────────────────────────
+
+#[test]
+fn twitter_status_url_routes_to_twitter() {
+    assert!(matches!(
+        route("https://twitter.com/rustlang/status/1234567890"),
+        Route::Url(PlatformRoute::Twitter { .. })
+    ));
+}
+
+#[test]
+fn x_com_status_url_routes_to_twitter() {
+    assert!(matches!(
+        route("https://x.com/rustlang/status/1234567890"),
+        Route::Url(PlatformRoute::Twitter { .. })
+    ));
+}
+
+#[test]
+fn twitter_profile_url_falls_through_to_generic() {
+    assert!(matches!(
+        route("https://x.com/rustlang"),
+        Route::Url(PlatformRoute::Generic(_))
+    ));
+}
+
+// ── TikTok ────────────────────────────────────────────────────────────────────
+
+#[test]
+fn tiktok_video_url_routes_to_tiktok() {
+    assert!(matches!(
+        route("https://www.tiktok.com/@username/video/1234567890"),
+        Route::Url(PlatformRoute::TikTok { .. })
+    ));
+}
+
+#[test]
+fn tiktok_profile_url_falls_through_to_generic() {
+    assert!(matches!(
+        route("https://www.tiktok.com/@username"),
+        Route::Url(PlatformRoute::Generic(_))
+    ));
+}

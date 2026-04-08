@@ -9,6 +9,9 @@ pub enum PlatformRoute {
     Wikipedia { title: String },
     StackOverflow { question_id: u64 },
     ArXiv { paper_id: String },
+    YouTube { video_id: String, original_url: String },
+    Twitter { tweet_url: String },
+    TikTok { video_url: String },
     Generic(Url),
 }
 
@@ -41,6 +44,11 @@ fn classify_url(url: Url) -> PlatformRoute {
         Some("en.wikipedia.org") | Some("wikipedia.org") => classify_wikipedia(url),
         Some("stackoverflow.com") | Some("www.stackoverflow.com") => classify_stackoverflow(url),
         Some("arxiv.org") => classify_arxiv(url),
+        Some("www.youtube.com") | Some("youtube.com") | Some("youtu.be") => classify_youtube(url),
+        Some("twitter.com") | Some("www.twitter.com") | Some("x.com") | Some("www.x.com") => {
+            classify_twitter(url)
+        }
+        Some("www.tiktok.com") | Some("tiktok.com") => classify_tiktok(url),
         _ => PlatformRoute::Generic(url),
     }
 }
@@ -94,6 +102,35 @@ fn classify_arxiv(url: Url) -> PlatformRoute {
     use crate::search::arxiv::arxiv_id_from_url;
     if let Some(id) = arxiv_id_from_url(&url) {
         PlatformRoute::ArXiv { paper_id: id }
+    } else {
+        PlatformRoute::Generic(url)
+    }
+}
+
+fn classify_youtube(url: Url) -> PlatformRoute {
+    use crate::search::youtube::youtube_video_id;
+    let original_url = url.to_string();
+    if let Some(video_id) = youtube_video_id(&url) {
+        PlatformRoute::YouTube { video_id, original_url }
+    } else {
+        PlatformRoute::Generic(url)
+    }
+}
+
+fn classify_twitter(url: Url) -> PlatformRoute {
+    use crate::search::twitter::is_tweet_url;
+    if is_tweet_url(&url) {
+        PlatformRoute::Twitter { tweet_url: url.to_string() }
+    } else {
+        // Profile pages, search, etc. — fall back to generic
+        PlatformRoute::Generic(url)
+    }
+}
+
+fn classify_tiktok(url: Url) -> PlatformRoute {
+    use crate::search::tiktok::is_tiktok_video_url;
+    if is_tiktok_video_url(&url) {
+        PlatformRoute::TikTok { video_url: url.to_string() }
     } else {
         PlatformRoute::Generic(url)
     }

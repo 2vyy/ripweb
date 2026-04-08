@@ -24,7 +24,13 @@ use crate::{
             format_so_content, parse_so_answers, parse_so_question,
             so_answers_url, so_question_url, SoContent,
         },
+        tiktok::{parse_tiktok_oembed, tiktok_oembed_url},
+        twitter::{parse_twitter_oembed, twitter_oembed_url},
         wikipedia::{parse_wiki_summary, wiki_summary_url},
+        youtube::{
+            extract_caption_url, format_youtube_content, parse_caption_xml, parse_youtube_oembed,
+            youtube_oembed_url,
+        },
     },
 };
 
@@ -163,6 +169,73 @@ async fn handle_platform(
             let content = parse_arxiv_atom(&body)
                 .ok_or_else(|| RipwebError::Network("ArXiv returned no results".into()))?;
             Ok((format_arxiv_content(&content), 1))
+        }
+        PlatformRoute::YouTube { video_id: _, original_url } => {
+            // Stage 1: oEmbed for metadata (always)
+            let oembed_url = youtube_oembed_url(&original_url);
+            let oembed_body = client
+                .get(&oembed_url)
+                .send()
+                .await
+                .map_err(|e| RipwebError::Network(e.to_string()))?
+                .text()
+                .await
+                .map_err(|e| RipwebError::Network(e.to_string()))?;
+            let oembed = parse_youtube_oembed(&oembed_body)
+                .map_err(|e| RipwebError::Network(format!("YouTube oEmbed parse: {e}")))?;
+
+            // Stage 2: timedtext caption transcript (best-effort)
+            let transcript = async {
+                let page = client
+                    .get(&original_url)
+                    .send()
+                    .await
+                    .ok()?
+                    .text()
+                    .await
+                    .ok()?;
+                let caption_url = extract_caption_url(&page)?;
+                let xml = client
+                    .get(&caption_url)
+                    .send()
+                    .await
+                    .ok()?
+                    .text()
+                    .await
+                    .ok()?;
+                Some(parse_caption_xml(&xml))
+            }
+            .await;
+
+            Ok((format_youtube_content(&oembed, transcript.as_deref()), 1))
+        }
+        PlatformRoute::Twitter { tweet_url } => {
+            let oembed_url = twitter_oembed_url(&tweet_url);
+            let body = client
+                .get(&oembed_url)
+                .send()
+                .await
+                .map_err(|e| RipwebError::Network(e.to_string()))?
+                .text()
+                .await
+                .map_err(|e| RipwebError::Network(e.to_string()))?;
+            let text = parse_twitter_oembed(&body)
+                .map_err(|e| RipwebError::Network(format!("Twitter oEmbed parse: {e}")))?;
+            Ok((text, 1))
+        }
+        PlatformRoute::TikTok { video_url } => {
+            let oembed_url = tiktok_oembed_url(&video_url);
+            let body = client
+                .get(&oembed_url)
+                .send()
+                .await
+                .map_err(|e| RipwebError::Network(e.to_string()))?
+                .text()
+                .await
+                .map_err(|e| RipwebError::Network(e.to_string()))?;
+            let text = parse_tiktok_oembed(&body)
+                .map_err(|e| RipwebError::Network(format!("TikTok oEmbed parse: {e}")))?;
+            Ok((text, 1))
         }
         PlatformRoute::Generic(url) => {
             // 1. Try .md / index.html.md probe first (fastest, highest quality)
