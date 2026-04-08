@@ -29,7 +29,10 @@ impl DomainSemaphores {
     ///
     /// The host key is normalised to lowercase so that `Example.Com` and
     /// `EXAMPLE.COM` share the same semaphore.
-    pub async fn acquire(&self, host: &str) -> Result<OwnedDomainPermit, crate::error::RipwebError> {
+    pub async fn acquire(
+        &self,
+        host: &str,
+    ) -> Result<OwnedDomainPermit, crate::error::RipwebError> {
         let key = host.to_ascii_lowercase();
         let sem = self
             .map

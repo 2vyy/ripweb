@@ -15,7 +15,6 @@ pub struct HnContent {
 /// Build the Algolia HN API URL for the given item ID.
 pub fn hn_api_url(item_id: &str) -> Result<Url, url::ParseError> {
     Url::parse(&format!("https://hn.algolia.com/api/v1/items/{item_id}"))
-        
 }
 
 /// Parse the Algolia HN item JSON, extracting title, OP text, and

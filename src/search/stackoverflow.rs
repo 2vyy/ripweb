@@ -27,7 +27,6 @@ pub fn so_answers_url(question_id: u64) -> Result<Url, url::ParseError> {
         "https://api.stackexchange.com/2.3/questions/{question_id}/answers\
          ?order=desc&sort=votes&site=stackoverflow&filter=withbody"
     ))
-    
 }
 
 /// Build the SE API URL to fetch a question's details (title + body).
@@ -36,7 +35,6 @@ pub fn so_question_url(question_id: u64) -> Result<Url, url::ParseError> {
         "https://api.stackexchange.com/2.3/questions/{question_id}\
          ?site=stackoverflow&filter=withbody"
     ))
-    
 }
 
 /// Extract the SO question ID from a URL like

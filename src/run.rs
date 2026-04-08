@@ -116,9 +116,8 @@ async fn handle_platform(
         }
         PlatformRoute::Wikipedia { title } => {
             if cli.verbosity >= 3 {
-                let full_url =
-                    url::Url::parse(&format!("https://en.wikipedia.org/wiki/{}", title))
-                        .map_err(|e| RipwebError::Network(format!("Invalid Wikipedia URL: {e}")))?;
+                let full_url = url::Url::parse(&format!("https://en.wikipedia.org/wiki/{}", title))
+                    .map_err(|e| RipwebError::Network(format!("Invalid Wikipedia URL: {e}")))?;
                 return handle_generic_url(client, full_url, cli, retry, sems, cache).await;
             }
             let api = wiki_summary_url(&title).map_err(|e| RipwebError::Network(e.to_string()))?;
@@ -139,7 +138,11 @@ async fn handle_platform(
             let (q_body, a_body) = tokio::try_join!(
                 async {
                     client
-                        .get(so_question_url(question_id).map_err(|e| RipwebError::Network(e.to_string()))?.as_str())
+                        .get(
+                            so_question_url(question_id)
+                                .map_err(|e| RipwebError::Network(e.to_string()))?
+                                .as_str(),
+                        )
                         .send()
                         .await
                         .map_err(|e| RipwebError::Network(e.to_string()))?
@@ -149,7 +152,11 @@ async fn handle_platform(
                 },
                 async {
                     client
-                        .get(so_answers_url(question_id).map_err(|e| RipwebError::Network(e.to_string()))?.as_str())
+                        .get(
+                            so_answers_url(question_id)
+                                .map_err(|e| RipwebError::Network(e.to_string()))?
+                                .as_str(),
+                        )
                         .send()
                         .await
                         .map_err(|e| RipwebError::Network(e.to_string()))?
@@ -271,7 +278,10 @@ async fn handle_generic_url(
         && let Some(jina_text) = fetch_via_jina(client, &url).await
     {
         return Ok((
-            format!("<!-- Processed via Jina.ai Cloud Proxy -->\n\n{}", jina_text),
+            format!(
+                "<!-- Processed via Jina.ai Cloud Proxy -->\n\n{}",
+                jina_text
+            ),
             1,
         ));
     }
@@ -285,7 +295,7 @@ async fn handle_generic_url(
     }
 
     let (text, count) = run_crawler(client, url.clone(), cli, retry, sems, cache).await?;
-    
+
     if text.trim().len() < 150 && count == 1 {
         if cli.allow_cloud {
             if let Some(jina_text) = fetch_via_jina(client, &url).await {
@@ -298,8 +308,12 @@ async fn handle_generic_url(
                 ));
             }
         } else {
-            eprintln!("Warning: Extracted content is extremely sparse. This site may require JavaScript.");
-            eprintln!("Hint: Use the --allow-cloud flag to bypass this using a cloud JS-rendering proxy.");
+            eprintln!(
+                "Warning: Extracted content is extremely sparse. This site may require JavaScript."
+            );
+            eprintln!(
+                "Hint: Use the --allow-cloud flag to bypass this using a cloud JS-rendering proxy."
+            );
         }
     }
 

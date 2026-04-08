@@ -52,7 +52,6 @@ fn github_raw_url(owner: &str, repo: &str) -> Result<Url, url::ParseError> {
     Url::parse(&format!(
         "https://raw.githubusercontent.com/{owner}/{repo}/HEAD/README.md"
     ))
-    
 }
 
 async fn fetch_readme(

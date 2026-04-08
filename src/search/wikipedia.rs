@@ -23,7 +23,6 @@ pub fn wiki_summary_url(title: &str) -> Result<Url, url::ParseError> {
     Url::parse(&format!(
         "https://en.wikipedia.org/api/rest_v1/page/summary/{title}"
     ))
-    
 }
 
 /// Parse the Wikipedia REST v1 summary JSON response into clean Markdown.

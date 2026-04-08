@@ -35,7 +35,6 @@ pub fn arxiv_api_url(arxiv_id: &str) -> Result<Url, url::ParseError> {
     Url::parse(&format!(
         "https://export.arxiv.org/api/query?id_list={arxiv_id}&max_results=1"
     ))
-    
 }
 
 /// Parse the ArXiv Atom XML response into structured content.

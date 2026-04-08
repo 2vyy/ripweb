@@ -3,8 +3,6 @@
 //! Provides the `RipwebError` enum which maps internal failures (Network,
 //! Config, RateLimit) to CLI exit codes and user-facing messages.
 
-
-
 use crate::fetch::FetchError;
 
 #[derive(Debug, thiserror::Error)]

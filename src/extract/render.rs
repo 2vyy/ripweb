@@ -38,12 +38,7 @@ pub fn render_tag(tag: &tl::HTMLTag, parser: &tl::Parser) -> String {
         "thead" | "tbody" | "tfoot" | "tr" => render_children_blocks(tag, parser),
         "th" | "td" => render_children_inline(tag, parser),
         "main" | "article" | "body" => render_children_blocks(tag, parser),
-        "section" | "div" | "aside" => {
-            let rendered = render_children_blocks(tag, parser);
-            if prune_sidebar(&rendered, tag, parser) {
-                return String::new();
-            }
-        }
+        "section" | "div" | "aside" => evaluate_block_saturation(tag, parser).unwrap_or_default(),
         "span" | "small" | "time" | "label" | "summary" | "details" => {
             render_children_inline(tag, parser)
         }
@@ -72,22 +67,9 @@ pub fn cleanup_markdown(text: &str) -> String {
     out.trim().to_owned()
 }
 
-fn prune_sidebar(rendered: &str, tag: &tl::HTMLTag, parser: &tl::Parser) -> bool {
-    if rendered.len() < 30 {
-        return false;
-    }
-    // Protect blocks containing technical spec tables
-    if let Some(mut tables) = tag.query_selector(parser, "table")
-        && tables.next().is_some()
-    {
-        return false;
-    }
-
-    let mut link_chars = 0;
-    let mut clean_len = 0;
-    let mut in_bracket = false;
-    let mut in_paren = false;
-    let mut prev = '\0';
+fn get_text_lengths(node: &tl::Node, parser: &tl::Parser, in_link: bool) -> (usize, usize) {
+    let mut total = 0;
+    let mut link_total = 0;
 
     match node {
         tl::Node::Raw(b) => {
@@ -116,17 +98,17 @@ fn prune_sidebar(rendered: &str, tag: &tl::HTMLTag, parser: &tl::Parser) -> bool
 /// Returns `Some(MarkdownString)` if the block should be kept, or `None` if pruned.
 fn evaluate_block_saturation(tag: &tl::HTMLTag, parser: &tl::Parser) -> Option<String> {
     let (total_text, link_text) = get_text_lengths(&tl::Node::Tag(tag.clone()), parser, false);
-    
+
     // Fast path: safe if too small or saturation is low
     if total_text < 30 || (link_text as f64 / total_text as f64) <= 0.4 {
         return Some(render_children_blocks(tag, parser));
     }
 
     // Protect blocks containing technical spec tables
-    if let Some(mut tables) = tag.query_selector(parser, "table") {
-        if tables.next().is_some() {
-            return Some(render_children_blocks(tag, parser));
-        }
+    if let Some(mut tables) = tag.query_selector(parser, "table")
+        && tables.next().is_some()
+    {
+        return Some(render_children_blocks(tag, parser));
     }
 
     // Saturation is high. Could be a legitimate listing page or a bloated sidebar.
@@ -134,14 +116,14 @@ fn evaluate_block_saturation(tag: &tl::HTMLTag, parser: &tl::Parser) -> Option<S
     let rendered = render_children_blocks(tag, parser);
     let clean = cleanup_markdown(&rendered);
     let stats = crate::extract::candidate::score_text(&clean);
-    
+
     let is_sidebar_list = stats.list_items >= 4 && stats.paragraphs <= 2;
     let is_listing = stats.paragraphs >= 3 && stats.short_lines >= 4;
 
     if is_listing && !is_sidebar_list {
         return Some(rendered);
     }
-    
+
     None // Prune it
 }
 
