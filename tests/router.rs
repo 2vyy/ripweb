@@ -1,4 +1,4 @@
-use ripweb::router::{route, PlatformRoute, Route};
+use ripweb::router::{PlatformRoute, Route, route};
 
 // ── Input mode detection ──────────────────────────────────────────────────────
 
@@ -27,7 +27,7 @@ fn https_url_routes_to_url_mode() {
 
 #[test]
 fn github_repo_url_classifies_correctly() {
-    let Route::Url(PlatformRoute::GitHub { owner, repo }) =
+    let Route::Url(PlatformRoute::GitHub { owner, repo, .. }) =
         route("https://github.com/tokio-rs/tokio")
     else {
         panic!("expected GitHub route");
@@ -38,7 +38,7 @@ fn github_repo_url_classifies_correctly() {
 
 #[test]
 fn github_url_with_subpath_still_extracts_owner_repo() {
-    let Route::Url(PlatformRoute::GitHub { owner, repo }) =
+    let Route::Url(PlatformRoute::GitHub { owner, repo, .. }) =
         route("https://github.com/rust-lang/rust")
     else {
         panic!("expected GitHub route");
@@ -143,8 +143,7 @@ fn stackoverflow_non_question_url_falls_through_to_generic() {
 
 #[test]
 fn arxiv_abs_url_extracts_paper_id() {
-    let Route::Url(PlatformRoute::ArXiv { paper_id }) =
-        route("https://arxiv.org/abs/1706.03762")
+    let Route::Url(PlatformRoute::ArXiv { paper_id }) = route("https://arxiv.org/abs/1706.03762")
     else {
         panic!("expected ArXiv route");
     };
@@ -175,8 +174,7 @@ fn youtube_watch_url_extracts_video_id() {
 
 #[test]
 fn youtube_short_url_extracts_video_id() {
-    let Route::Url(PlatformRoute::YouTube { video_id, .. }) =
-        route("https://youtu.be/dQw4w9WgXcQ")
+    let Route::Url(PlatformRoute::YouTube { video_id, .. }) = route("https://youtu.be/dQw4w9WgXcQ")
     else {
         panic!("expected YouTube route");
     };

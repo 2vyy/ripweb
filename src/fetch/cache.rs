@@ -1,3 +1,9 @@
+//! File-based Response Cache
+//!
+//! Implements a simple XDG-compliant disk cache for HTTP responses
+//! to avoid redundant network requests and improve speed for repeated
+//! queries.
+
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 

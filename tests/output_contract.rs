@@ -1,5 +1,5 @@
 use ripweb::{
-    extract::{web::WebExtractor, Extractor},
+    extract::{Extractor, web::WebExtractor},
     minify::collapse,
 };
 
@@ -24,15 +24,27 @@ fn markdown_mode_preserves_source_structure() {
 
     let result = WebExtractor::extract(html, Some("text/html; charset=utf-8")).unwrap();
 
-    assert!(result.contains("# Guide Title"), "missing heading: {result}");
-    assert!(result.contains("## Steps"), "missing nested heading: {result}");
+    assert!(
+        result.contains("# Guide Title"),
+        "missing heading: {result}"
+    );
+    assert!(
+        result.contains("## Steps"),
+        "missing nested heading: {result}"
+    );
     assert!(
         result.contains("[useful link](https://example.com/docs?id=42)"),
         "missing normalized markdown link: {result}"
     );
-    assert!(result.contains("1. Install the tool"), "missing ordered list: {result}");
+    assert!(
+        result.contains("1. Install the tool"),
+        "missing ordered list: {result}"
+    );
     assert!(result.contains("```"), "missing code fence: {result}");
-    assert!(result.contains("\n\nIntro paragraph"), "missing paragraph separation: {result}");
+    assert!(
+        result.contains("\n\nIntro paragraph"),
+        "missing paragraph separation: {result}"
+    );
 }
 
 #[test]
@@ -43,7 +55,10 @@ fn aggressive_mode_preserves_paragraphs_and_code_fences() {
     assert!(result.contains("# Title"));
     assert!(result.contains("First paragraph.\n\nSecond paragraph."));
     assert!(result.contains("```\nfn main() {\n    println!(\"hi\");\n}\n```"));
-    assert!(!result.contains("\n\n\n"), "aggressive mode left excessive blank lines: {result}");
+    assert!(
+        !result.contains("\n\n\n"),
+        "aggressive mode left excessive blank lines: {result}"
+    );
 }
 
 #[test]
@@ -52,7 +67,10 @@ fn aggressive_mode_keeps_markdown_links_intact() {
     let result = collapse(markdown);
 
     assert!(result.contains("[Fetch API]("), "link label lost: {result}");
-    assert!(result.contains("id=42"), "meaningful URL component lost: {result}");
+    assert!(
+        result.contains("id=42"),
+        "meaningful URL component lost: {result}"
+    );
 }
 
 // ── Invariant tests ───────────────────────────────────────────────────────────
@@ -70,8 +88,8 @@ fn output_never_longer_than_input() {
         include_bytes!("fixtures/extract/forum_thread.html"),
     ];
     for (i, html) in fixtures.iter().enumerate() {
-        let result = WebExtractor::extract(html, Some("text/html; charset=utf-8"))
-            .unwrap_or_default();
+        let result =
+            WebExtractor::extract(html, Some("text/html; charset=utf-8")).unwrap_or_default();
         assert!(
             result.len() <= html.len(),
             "fixture {i}: output ({}) bytes is longer than input ({}) bytes",
@@ -94,8 +112,8 @@ fn no_orphaned_link_openers_in_output() {
         include_bytes!("fixtures/extract/forum_thread.html"),
     ];
     for (i, html) in fixtures.iter().enumerate() {
-        let result = WebExtractor::extract(html, Some("text/html; charset=utf-8"))
-            .unwrap_or_default();
+        let result =
+            WebExtractor::extract(html, Some("text/html; charset=utf-8")).unwrap_or_default();
         // Count `](` — each must be preceded by a closing `]` which follows an opening `[`
         // A simple structural check: the count of `[` must be >= count of `](`
         let opens = result.matches('[').count();

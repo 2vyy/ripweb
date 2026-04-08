@@ -1,3 +1,9 @@
+//! ArXiv Research Platform
+//!
+//! Handles Atom API requests to ArXiv to retrieve paper metadata 
+//! and abstracts. Maps PDF URLs back to abstract pages for clean 
+//! metadata extraction.
+
 use url::Url;
 
 /// Content extracted from an ArXiv paper.

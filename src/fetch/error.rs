@@ -1,3 +1,8 @@
+//! Network Errors
+//!
+//! Defines errors specific to the fetch layer, including rate-limiting,
+//! server failures, and network timeouts.
+
 use rquest::Error;
 
 #[derive(Debug)]

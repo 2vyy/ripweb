@@ -28,7 +28,7 @@ proptest! {
     ) {
         let input = format!("{}\n```\n{}\n```\n{}", prefix, middle, suffix);
         let collapsed = collapse(&input);
-        
+
         // If there are 3+ backticks in the input, the state machine should at least
         // preserve the "```" structure if it identified it as a fence.
         // We don't assert full verbatim here because `collapse` might still

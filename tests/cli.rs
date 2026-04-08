@@ -1,5 +1,5 @@
 use clap::Parser;
-use ripweb::cli::{Cli, OutputMode};
+use ripweb::cli::Cli;
 
 // ── Positional argument ───────────────────────────────────────────────────────
 
@@ -39,12 +39,6 @@ fn stat_defaults_to_false() {
 fn copy_defaults_to_false() {
     let cli = Cli::try_parse_from(["ripweb", "example"]).unwrap();
     assert!(!cli.copy);
-}
-
-#[test]
-fn mode_defaults_to_markdown() {
-    let cli = Cli::try_parse_from(["ripweb", "example"]).unwrap();
-    assert_eq!(cli.mode, OutputMode::Markdown);
 }
 
 // ── Flag parsing ──────────────────────────────────────────────────────────────
@@ -111,23 +105,12 @@ fn max_pages_long_flag() {
     assert_eq!(cli.max_pages, 5);
 }
 
-#[test]
-fn mode_long_flag_accepts_aggressive() {
-    let cli = Cli::try_parse_from(["ripweb", "--mode", "aggressive", "example"]).unwrap();
-    assert_eq!(cli.mode, OutputMode::Aggressive);
-}
-
-#[test]
-fn mode_short_flag_accepts_markdown_alias() {
-    let cli = Cli::try_parse_from(["ripweb", "-m", "md", "example"]).unwrap();
-    assert_eq!(cli.mode, OutputMode::Markdown);
-}
-
 // ── Verbosity ─────────────────────────────────────────────────────────────────
 
 #[test]
-fn verbosity_zero_by_default() {
+fn verbosity_default() {
     let cli = Cli::try_parse_from(["ripweb", "example"]).unwrap();
+    assert_eq!(cli.verbosity, 2);
     assert_eq!(cli.verbose, 0);
 }
 
@@ -148,7 +131,10 @@ fn verbosity_triple_v() {
 #[test]
 fn url_and_query_flags_conflict() {
     let result = Cli::try_parse_from(["ripweb", "-u", "-q", "example"]);
-    assert!(result.is_err(), "combining -u and -q must be rejected by clap");
+    assert!(
+        result.is_err(),
+        "combining -u and -q must be rejected by clap"
+    );
 }
 
 // ── Missing required argument ─────────────────────────────────────────────────
@@ -156,7 +142,10 @@ fn url_and_query_flags_conflict() {
 #[test]
 fn missing_positional_without_clean_cache_is_error() {
     let result = Cli::try_parse_from(["ripweb"]);
-    assert!(result.is_err(), "no positional arg and no --clean-cache must fail");
+    assert!(
+        result.is_err(),
+        "no positional arg and no --clean-cache must fail"
+    );
 }
 
 // ── Help does not panic ───────────────────────────────────────────────────────

@@ -1,3 +1,8 @@
+//! URL Tracking Stripper
+//!
+//! Provides heuristics for removing tracking parameters (utm_*, fbclid)
+//! from URLs to reduce token waste and improve privacy.
+
 /// Tracking / noise query parameters that add no semantic value.
 static STRIP_PARAMS: &[&str] = &[
     // UTM campaign tracking
@@ -69,8 +74,14 @@ mod tests {
     fn strips_utm_params() {
         let url = "https://example.com/page?utm_source=newsletter&utm_medium=email&id=42";
         let result = strip_tracking(url);
-        assert!(!result.contains("utm_source"), "utm_source leaked: {result}");
-        assert!(!result.contains("utm_medium"), "utm_medium leaked: {result}");
+        assert!(
+            !result.contains("utm_source"),
+            "utm_source leaked: {result}"
+        );
+        assert!(
+            !result.contains("utm_medium"),
+            "utm_medium leaked: {result}"
+        );
         assert!(result.contains("id=42"), "real param lost: {result}");
     }
 

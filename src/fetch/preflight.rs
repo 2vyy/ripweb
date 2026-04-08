@@ -1,3 +1,8 @@
+//! Safety Preflights
+//!
+//! Validates `Content-Length` and `Content-Type` before downloading
+//! bodies to avoid large files (PDFs, ZIPs) or memory exhaustion.
+
 /// Hard ceiling on response body size (5 MiB).  Responses that declare a
 /// `Content-Length` exceeding this are rejected before the body is streamed,
 /// preventing OOM panics from rogue binary links.
@@ -49,7 +54,9 @@ impl PreflightCheck {
             return Err(PreflightError::NonTextMime(mime.to_owned()));
         }
 
-        if let Some(len) = content_length && len > MAX_PAGE_SIZE {
+        if let Some(len) = content_length
+            && len > MAX_PAGE_SIZE
+        {
             return Err(PreflightError::TooLarge(len));
         }
 

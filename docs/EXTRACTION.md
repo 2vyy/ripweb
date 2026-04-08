@@ -194,6 +194,9 @@ To maximize signal-to-noise ratio, `ripweb` uses keyless REST APIs for these hig
 - **Reddit**: Appends `.json` to thread URLs to get the structured comment tree (filtering for score > 0).
 - **HackerNews**: Uses the Algolia HN API (`/api/v1/items/`) for consistent comment retrieval.
 - **GitHub**: Uses the `raw.githubusercontent.com` proxy for READMEs and the REST API for public Issues/Comments.
+- **YouTube**: Uses oEmbed for video metadata and the `timedtext` API for full timestamped transcripts extracted from the page's embedded `captionTracks` JSON.
+- **Twitter/X**: Uses the unauthenticated `publish.twitter.com` oEmbed endpoint to retrieve and clean tweet text from the embedded blockquote.
+- **TikTok**: Uses the public oEmbed endpoint for the highest-fidelity keyless metadata available (title and creator).
 
 ---
 

@@ -1,3 +1,7 @@
+//! Twitter/X Tweet Extraction
+//!
+//! Fetches tweet text and author metadata via the public oEmbed API.
+
 use serde::Deserialize;
 use url::Url;
 

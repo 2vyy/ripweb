@@ -1,3 +1,8 @@
+//! HTML Extraction Orchestration
+//!
+//! Pulls together the candidate scorer, boilerplate nuke-list,
+//! and markdown renderer to produce clean text from raw HTML bytes.
+
 pub mod boilerplate;
 pub mod candidate;
 pub mod family;

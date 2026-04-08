@@ -1,3 +1,8 @@
+//! Domain Politeness
+//!
+//! Enforces concurrent request limits per host to avoid overwhelming
+//! target servers or triggering WAF blocks.
+
 use std::sync::Arc;
 
 use dashmap::DashMap;

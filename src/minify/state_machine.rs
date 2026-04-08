@@ -1,9 +1,14 @@
+//! Zero-Allocation Whitespace Minifier
+//!
+//! Implements a single-pass state machine for collapsing redundant
+//! whitespace and truncating excessively long tokens (hashes, base64).
+
 /// Whitespace character categories understood by the state machine.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum WsKind {
     None,
-    Space, // spaces / tabs / \r only
-    Line(u8),  // one or two pending newlines
+    Space,    // spaces / tabs / \r only
+    Line(u8), // one or two pending newlines
 }
 
 /// State of the minification pass.
@@ -26,16 +31,14 @@ const HEX_MAX_LEN: usize = 64;
 /// Returns `true` if every character is in the base64 alphabet (incl. `=` padding).
 fn is_base64_token(s: &str) -> bool {
     s.len() >= B64_MIN_LEN
-        && s.bytes().all(|b| {
-            b.is_ascii_alphanumeric() || b == b'+' || b == b'/' || b == b'='
-        })
+        && s.bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'+' || b == b'/' || b == b'=')
 }
 
 /// Returns `true` if the token looks like a lowercase or uppercase hex hash.
 fn is_hex_hash(s: &str) -> bool {
     let n = s.len();
-    (HEX_MIN_LEN..=HEX_MAX_LEN).contains(&n)
-        && s.bytes().all(|b| b.is_ascii_hexdigit())
+    (HEX_MIN_LEN..=HEX_MAX_LEN).contains(&n) && s.bytes().all(|b| b.is_ascii_hexdigit())
 }
 
 // ── Main state machine ────────────────────────────────────────────────────────
@@ -209,7 +212,10 @@ fn strip_decorative_heading_anchor(line: &str) -> String {
 
     line.replace("[§](#", "§](#")
         .split_once("§](#")
-        .and_then(|(prefix, rest)| rest.split_once(')').map(|(_, suffix)| format!("{prefix}{suffix}")))
+        .and_then(|(prefix, rest)| {
+            rest.split_once(')')
+                .map(|(_, suffix)| format!("{prefix}{suffix}"))
+        })
         .unwrap_or_else(|| line.to_owned())
 }
 
@@ -350,15 +356,24 @@ mod tests {
     fn code_fence_content_is_preserved_verbatim() {
         let input = "text before\n```\n    indented_code()\n    more = true\n```\nafter";
         let result = collapse(input);
-        assert!(result.contains("    indented_code()"), "indentation lost: {result}");
-        assert!(result.contains("    more = true"), "indentation lost: {result}");
+        assert!(
+            result.contains("    indented_code()"),
+            "indentation lost: {result}"
+        );
+        assert!(
+            result.contains("    more = true"),
+            "indentation lost: {result}"
+        );
     }
 
     #[test]
     fn fence_entry_emits_exactly_three_backticks() {
         let result = collapse("before ```\ncode\n``` after");
         assert!(result.contains("```"), "missing fence: {result}");
-        assert!(!result.contains("``````"), "duplicated fence ticks: {result}");
+        assert!(
+            !result.contains("``````"),
+            "duplicated fence ticks: {result}"
+        );
     }
 
     #[test]

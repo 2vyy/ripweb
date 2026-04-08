@@ -1,3 +1,8 @@
+//! StackExchange (StackOverflow) API
+//!
+//! Fetches question details and answers from the SE API v2.3. 
+//! Sorts answers to prioritize "Accepted" and "Highly Voted" content.
+
 use serde::Deserialize;
 use url::Url;
 
@@ -88,9 +93,14 @@ pub fn parse_so_answers(json: &str) -> Result<Vec<SoAnswer>, serde_json::Error> 
 }
 
 /// Format the extracted SO content as clean Markdown.
-pub fn format_so_content(content: &SoContent) -> String {
+pub fn format_so_content(content: &SoContent, verbosity: u8) -> String {
     let mut out = format!("# {}\n\n## Answers\n\n", content.title);
-    for answer in &content.answers {
+    let limit = match verbosity {
+        1 => 1,
+        2 => 3,
+        _ => usize::MAX,
+    };
+    for answer in content.answers.iter().take(limit) {
         let header = if answer.is_accepted {
             format!("### ✅ Accepted Answer [Score: {}]\n\n", answer.score)
         } else {

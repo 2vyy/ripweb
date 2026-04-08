@@ -59,7 +59,10 @@ ripweb/
     │   ├── arxiv.rs         # Metadata and Abstract harvesting
     │   ├── github.rs        # Issue/Comment/README extraction
     │   ├── reddit.rs        # JSON-native thread parsing
-    │   └── hackernews.rs    # Algolia API integration
+    │   ├── hackernews.rs    # Algolia API integration
+    │   ├── youtube.rs       # oEmbed + timedtext transcripts
+    │   ├── twitter.rs       # publish.twitter.com oEmbed
+    │   └── tiktok.rs        # Public oEmbed metadata
     ├── fetch/               # The Network & Probe Layer
     │   ├── probe.rs         # .md and llms.txt auto-discovery
     │   ├── crawler.rs       # Recursive HTML scraper

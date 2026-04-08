@@ -1,9 +1,14 @@
-use crate::error::RipwebError;
-use encoding_rs::Encoding;
+//! Generic Web Extraction
+//!
+//! High-level interface for extracting content from generic
+//! HTML pages using heuristic-based scoring and rendering.
+
 use super::Extractor;
 use super::candidate::{extract_best_candidate, word_count};
-use super::family::{detect_family, url_family_hint, PageFamily};
+use super::family::{PageFamily, detect_family, url_family_hint};
 use super::render::{cleanup_markdown, extract_next_data};
+use crate::error::RipwebError;
+use encoding_rs::Encoding;
 
 pub struct WebExtractor;
 

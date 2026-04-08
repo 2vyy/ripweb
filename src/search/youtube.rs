@@ -1,3 +1,8 @@
+//! YouTube Metadata & Transcripts
+//!
+//! Extracts video metadata (Title, Channel) and localized timed-text 
+//! transcripts for deep content retrieval.
+
 use serde::Deserialize;
 use url::Url;
 
@@ -104,15 +109,28 @@ pub fn parse_caption_xml(xml: &str) -> String {
         .join("\n")
 }
 
-/// Format oEmbed metadata + optional transcript into Markdown.
-pub fn format_youtube_content(oembed: &YoutubeOembed, transcript: Option<&str>) -> String {
+/// Format oEmbed metadata + optional transcript into Markdown based on verbosity.
+pub fn format_youtube_content(oembed: &YoutubeOembed, transcript: Option<&str>, verbosity: u8) -> String {
     let mut out = format!("# {}\n\n**Channel:** [{}]({})\n",
         oembed.title, oembed.author_name, oembed.author_url);
 
     if let Some(tx) = transcript {
         if !tx.is_empty() {
-            out.push_str("\n## Transcript\n\n");
-            out.push_str(tx);
+            match verbosity {
+                1 => {} // V1: No transcript
+                2 => {
+                    // V2: Truncate transcript to ~500 chars roughly
+                    out.push_str("\n## Transcript Snippet\n\n");
+                    let snippet: String = tx.chars().take(500).collect();
+                    out.push_str(&snippet);
+                    if tx.len() > 500 { out.push_str("... (truncated)"); }
+                }
+                3 | _ => {
+                    // V3: Full transcript
+                    out.push_str("\n## Transcript\n\n");
+                    out.push_str(tx);
+                }
+            }
         }
     }
     out
@@ -219,7 +237,7 @@ mod tests {
             author_url: "https://youtube.com/@test".into(),
             thumbnail_url: None,
         };
-        let out = format_youtube_content(&oembed, Some("**[00:00]** Hello"));
+        let out = format_youtube_content(&oembed, Some("**[00:00]** Hello"), 3);
         assert!(out.starts_with("# Test Video"));
         assert!(out.contains("## Transcript"));
         assert!(out.contains("**[00:00]** Hello"));
@@ -233,7 +251,7 @@ mod tests {
             author_url: "https://youtube.com/@c".into(),
             thumbnail_url: None,
         };
-        let out = format_youtube_content(&oembed, None);
+        let out = format_youtube_content(&oembed, None, 3);
         assert!(!out.contains("## Transcript"));
     }
 }

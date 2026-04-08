@@ -1,5 +1,10 @@
-use crate::minify::strip_tracking;
+//! Markdown Rendering
+//!
+//! Converts a purified DOM subtree into structured Markdown,
+//! preserving headings, lists, code blocks, and links.
+
 use super::boilerplate::{NUKE_TAGS, should_strip_subtree};
+use crate::minify::strip_tracking;
 
 pub fn render_markdown(node: &tl::Node, parser: &tl::Parser) -> String {
     match node {
@@ -89,15 +94,23 @@ pub fn extract_next_data(dom: &tl::VDom) -> Option<String> {
     let value: serde_json::Value = serde_json::from_str(&raw_json).ok()?;
     let mut parts: Vec<String> = Vec::new();
     collect_json_strings(&value, &mut parts);
-    if parts.is_empty() { None } else { Some(parts.join("\n\n")) }
+    if parts.is_empty() {
+        None
+    } else {
+        Some(parts.join("\n\n"))
+    }
 }
 
 pub fn render_children_blocks(tag: &tl::HTMLTag, parser: &tl::Parser) -> String {
     let mut out = String::new();
     for handle in tag.children().top().iter() {
-        let Some(child) = handle.get(parser) else { continue };
+        let Some(child) = handle.get(parser) else {
+            continue;
+        };
         let rendered = render_markdown(child, parser);
-        if rendered.is_empty() { continue }
+        if rendered.is_empty() {
+            continue;
+        }
         if !out.is_empty() && !out.ends_with('\n') && !rendered.starts_with('\n') {
             out.push(' ');
         }
@@ -125,7 +138,11 @@ fn render_heading(tag: &tl::HTMLTag, parser: &tl::Parser, name: &str) -> String 
         .unwrap_or(1)
         .clamp(1, 6);
     let text = render_children_inline(tag, parser);
-    if text.is_empty() { String::new() } else { format!("\n\n{} {}\n\n", "#".repeat(level), text) }
+    if text.is_empty() {
+        String::new()
+    } else {
+        format!("\n\n{} {}\n\n", "#".repeat(level), text)
+    }
 }
 
 fn render_pre(tag: &tl::HTMLTag, parser: &tl::Parser) -> String {
@@ -155,7 +172,11 @@ fn render_pre(tag: &tl::HTMLTag, parser: &tl::Parser) -> String {
 
 fn render_inline_code(tag: &tl::HTMLTag, parser: &tl::Parser) -> String {
     let code = normalize_text(&tag.inner_text(parser));
-    if code.is_empty() { String::new() } else { format!("`{code}`") }
+    if code.is_empty() {
+        String::new()
+    } else {
+        format!("`{code}`")
+    }
 }
 
 fn render_link(tag: &tl::HTMLTag, parser: &tl::Parser) -> String {
@@ -166,7 +187,9 @@ fn render_link(tag: &tl::HTMLTag, parser: &tl::Parser) -> String {
         .flatten()
         .map(|v| v.as_utf8_str().to_string())
         .unwrap_or_default();
-    if href.is_empty() { return text; }
+    if href.is_empty() {
+        return text;
+    }
     let href = strip_tracking(&href);
     let label = if text.is_empty() { href.clone() } else { text };
     format!("[{label}]({href})")
@@ -174,10 +197,18 @@ fn render_link(tag: &tl::HTMLTag, parser: &tl::Parser) -> String {
 
 fn render_blockquote(tag: &tl::HTMLTag, parser: &tl::Parser) -> String {
     let inner = cleanup_markdown(&render_children_blocks(tag, parser));
-    if inner.is_empty() { return String::new(); }
+    if inner.is_empty() {
+        return String::new();
+    }
     let quoted = inner
         .lines()
-        .map(|line| if line.is_empty() { ">".to_owned() } else { format!("> {line}") })
+        .map(|line| {
+            if line.is_empty() {
+                ">".to_owned()
+            } else {
+                format!("> {line}")
+            }
+        })
         .collect::<Vec<_>>()
         .join("\n");
     format!("\n\n{quoted}\n\n")
@@ -186,15 +217,29 @@ fn render_blockquote(tag: &tl::HTMLTag, parser: &tl::Parser) -> String {
 fn render_list(tag: &tl::HTMLTag, parser: &tl::Parser, ordered: bool) -> String {
     let mut items = Vec::new();
     for handle in tag.children().top().iter() {
-        let Some(child) = handle.get(parser) else { continue };
+        let Some(child) = handle.get(parser) else {
+            continue;
+        };
         let Some(li) = child.as_tag() else { continue };
-        if li.name().as_utf8_str().to_ascii_lowercase() != "li" { continue }
+        if li.name().as_utf8_str().to_ascii_lowercase() != "li" {
+            continue;
+        }
         let content = cleanup_markdown(&render_children_blocks(li, parser));
-        if content.is_empty() { continue }
-        let marker = if ordered { format!("{}. ", items.len() + 1) } else { "- ".to_owned() };
+        if content.is_empty() {
+            continue;
+        }
+        let marker = if ordered {
+            format!("{}. ", items.len() + 1)
+        } else {
+            "- ".to_owned()
+        };
         items.push(indent_block(&content, &marker, "  "));
     }
-    if items.is_empty() { String::new() } else { format!("\n\n{}\n\n", items.join("\n")) }
+    if items.is_empty() {
+        String::new()
+    } else {
+        format!("\n\n{}\n\n", items.join("\n"))
+    }
 }
 
 fn render_image(tag: &tl::HTMLTag) -> String {
@@ -209,7 +254,9 @@ fn render_image(tag: &tl::HTMLTag) -> String {
 
 fn render_table(tag: &tl::HTMLTag, parser: &tl::Parser) -> String {
     let rows = collect_table_rows(tag, parser);
-    if rows.is_empty() { return String::new(); }
+    if rows.is_empty() {
+        return String::new();
+    }
     let mut out = String::from("\n\n");
     for row in rows {
         out.push_str("| ");
@@ -223,22 +270,36 @@ fn render_table(tag: &tl::HTMLTag, parser: &tl::Parser) -> String {
 fn collect_table_rows(tag: &tl::HTMLTag, parser: &tl::Parser) -> Vec<Vec<String>> {
     let mut rows = Vec::new();
     for handle in tag.children().top().iter() {
-        let Some(child) = handle.get(parser) else { continue };
-        let Some(child_tag) = child.as_tag() else { continue };
+        let Some(child) = handle.get(parser) else {
+            continue;
+        };
+        let Some(child_tag) = child.as_tag() else {
+            continue;
+        };
         let name = child_tag.name().as_utf8_str().to_ascii_lowercase();
         match name.as_str() {
             "thead" | "tbody" | "tfoot" => rows.extend(collect_table_rows(child_tag, parser)),
             "tr" => {
                 let mut cells = Vec::new();
                 for cell_handle in child_tag.children().top().iter() {
-                    let Some(cell_node) = cell_handle.get(parser) else { continue };
-                    let Some(cell_tag) = cell_node.as_tag() else { continue };
+                    let Some(cell_node) = cell_handle.get(parser) else {
+                        continue;
+                    };
+                    let Some(cell_tag) = cell_node.as_tag() else {
+                        continue;
+                    };
                     let cell_name = cell_tag.name().as_utf8_str().to_ascii_lowercase();
-                    if !matches!(cell_name.as_str(), "th" | "td") { continue }
+                    if !matches!(cell_name.as_str(), "th" | "td") {
+                        continue;
+                    }
                     let cell = render_children_inline(cell_tag, parser);
-                    if !cell.is_empty() { cells.push(cell); }
+                    if !cell.is_empty() {
+                        cells.push(cell);
+                    }
                 }
-                if !cells.is_empty() { rows.push(cells); }
+                if !cells.is_empty() {
+                    rows.push(cells);
+                }
             }
             _ => {}
         }
@@ -257,7 +318,10 @@ fn normalize_inline_spacing(text: &str) -> String {
         if ch == ' ' {
             let next = chars.peek().copied();
             if out.ends_with(' ')
-                || matches!(next, Some(',' | '.' | ';' | ':' | '!' | '?' | ')' | ']' | '}'))
+                || matches!(
+                    next,
+                    Some(',' | '.' | ';' | ':' | '!' | '?' | ')' | ']' | '}')
+                )
                 || matches!(out.chars().last(), Some('(' | '[' | '{' | '\n'))
             {
                 continue;
@@ -269,20 +333,32 @@ fn normalize_inline_spacing(text: &str) -> String {
 }
 
 fn wrap_inline_marker(marker: &str, text: String) -> String {
-    if text.is_empty() { String::new() } else { format!("{marker}{text}{marker}") }
+    if text.is_empty() {
+        String::new()
+    } else {
+        format!("{marker}{text}{marker}")
+    }
 }
 
 fn wrap_block(text: String) -> String {
-    if text.is_empty() { String::new() } else { format!("\n\n{text}\n\n") }
+    if text.is_empty() {
+        String::new()
+    } else {
+        format!("\n\n{text}\n\n")
+    }
 }
 
 fn indent_block(text: &str, first_prefix: &str, rest_prefix: &str) -> String {
     text.lines()
         .enumerate()
         .map(|(idx, line)| {
-            if idx == 0 { format!("{first_prefix}{line}") }
-            else if line.is_empty() { rest_prefix.to_owned() }
-            else { format!("{rest_prefix}{line}") }
+            if idx == 0 {
+                format!("{first_prefix}{line}")
+            } else if line.is_empty() {
+                rest_prefix.to_owned()
+            } else {
+                format!("{rest_prefix}{line}")
+            }
         })
         .collect::<Vec<_>>()
         .join("\n")
@@ -296,10 +372,20 @@ fn collect_json_strings(value: &serde_json::Value, out: &mut Vec<String>) {
     match value {
         serde_json::Value::String(s) => {
             let trimmed = s.trim().to_owned();
-            if is_content_leaf(&trimmed) { out.push(trimmed); }
+            if is_content_leaf(&trimmed) {
+                out.push(trimmed);
+            }
         }
-        serde_json::Value::Array(arr) => { for v in arr { collect_json_strings(v, out); } }
-        serde_json::Value::Object(map) => { for v in map.values() { collect_json_strings(v, out); } }
+        serde_json::Value::Array(arr) => {
+            for v in arr {
+                collect_json_strings(v, out);
+            }
+        }
+        serde_json::Value::Object(map) => {
+            for v in map.values() {
+                collect_json_strings(v, out);
+            }
+        }
         _ => {}
     }
 }

@@ -1,3 +1,9 @@
+//! Extraction Configuration
+//!
+//! Contains data model and logic for domain-specific extraction rules,
+//! such as "Family" hints (Docs, Forum, etc.) and CSS selectors for
+//! common site layouts.
+
 use directories::ProjectDirs;
 use serde::Deserialize;
 use std::collections::HashMap;

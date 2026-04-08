@@ -1,3 +1,8 @@
+//! Boilerplate Detection & Removal
+//!
+//! Provides the "Nuke List" of tags (nav, footer, script) and heuristic
+//! hints for identifying low-value subtrees during content extraction.
+
 /// Tags whose entire subtrees are stripped before content extraction.
 pub const NUKE_TAGS: &[&str] = &[
     "nav", "footer", "header", "aside", "style", "svg", "iframe", "form", "script", "noscript",
@@ -5,27 +10,62 @@ pub const NUKE_TAGS: &[&str] = &[
 
 pub const NEGATIVE_HINTS: &[&str] = &[
     // Navigation and structure
-    "nav", "menu", "sidebar", "footer", "header", "breadcrumb", "sitemap", "toolbar",
+    "nav",
+    "menu",
+    "sidebar",
+    "footer",
+    "header",
+    "breadcrumb",
+    "sitemap",
+    "toolbar",
     // Overlays and interruptions
-    "cookie", "modal", "popup", "banner", "notice", "disclosure", "overlay",
+    "cookie",
+    "modal",
+    "popup",
+    "banner",
+    "notice",
+    "disclosure",
+    "overlay",
     // Social and sharing
-    "share", "social",
+    "share",
+    "social",
     // Supplementary content
-    "related", "recommend", "promo", "sponsor", "ad-", "advert",
+    "related",
+    "recommend",
+    "promo",
+    "sponsor",
+    "ad-",
+    "advert",
     // Subscription and utility
-    "utility", "newsletter", "subscribe",
+    "utility",
+    "newsletter",
+    "subscribe",
     // Dynamic content containers
-    "carousel", "slider",
+    "carousel",
+    "slider",
     // Docs-specific noise
-    "toc", "table-of-contents", "on-this-page", "in-this-article",
+    "toc",
+    "table-of-contents",
+    "on-this-page",
+    "in-this-article",
     // Blog/news metadata noise
-    "byline", "author-bio", "tags", "tag-list", "pagination", "page-nav",
+    "byline",
+    "author-bio",
+    "tags",
+    "tag-list",
+    "pagination",
+    "page-nav",
     // UI widgets and annotations
-    "widget", "chip", "pill", "annotation", "tooltip",
+    "widget",
+    "chip",
+    "pill",
+    "annotation",
+    "tooltip",
     // Comments section
     "comment",
     // Copyright / legal
-    "copyright", "legal",
+    "copyright",
+    "legal",
 ];
 
 /// Extract a named attribute value from an HTML tag.

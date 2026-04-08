@@ -1,6 +1,11 @@
+//! Post-Processing & Re-ranking
+//!
+//! Applies family-specific cleanup rules, such as re-ranking
+//! forum comments or stripping documentation sidetrees.
+
+use super::boilerplate::tag_attribute;
 use super::family::PageFamily;
 use super::render::render_markdown;
-use super::boilerplate::tag_attribute;
 
 /// Fine-tune the extracted text based on the detected page family.
 ///
@@ -10,7 +15,11 @@ pub fn post_process(family: PageFamily, dom: &tl::VDom, current_text: String) ->
     match family {
         PageFamily::Forum => {
             let processed = post_process_forum(dom);
-            if processed.is_empty() { current_text } else { processed }
+            if processed.is_empty() {
+                current_text
+            } else {
+                processed
+            }
         }
         _ => current_text,
     }
@@ -18,11 +27,11 @@ pub fn post_process(family: PageFamily, dom: &tl::VDom, current_text: String) ->
 
 fn post_process_forum(dom: &tl::VDom) -> String {
     let parser = dom.parser();
-    
+
     // 1. Find the "Question/OP" and "Answers/Replies"
     // Heuristic: identify common post/comment classes
     let post_selectors = [".post", ".comment", ".answer", ".message", "article"];
-    
+
     let mut posts = Vec::new();
     for selector in post_selectors {
         if let Some(nodes) = dom.query_selector(selector) {
@@ -32,10 +41,10 @@ fn post_process_forum(dom: &tl::VDom) -> String {
                     let is_accepted = tag_attribute(tag, "class")
                         .map(|c| c.contains("accepted"))
                         .unwrap_or(false);
-                    
+
                     // Render children but skip the score element to avoid redundancy
                     let content = render_post_content(tag, parser);
-                    
+
                     if !content.trim().is_empty() {
                         posts.push(ForumPost {
                             content,
@@ -46,7 +55,9 @@ fn post_process_forum(dom: &tl::VDom) -> String {
                 }
             }
         }
-        if !posts.is_empty() { break; }
+        if !posts.is_empty() {
+            break;
+        }
     }
 
     if posts.is_empty() {
@@ -57,7 +68,7 @@ fn post_process_forum(dom: &tl::VDom) -> String {
     // For now, we assume the first post is the OP and we don't re-rank it,
     // but we re-rank the rest.
     let op = posts.remove(0);
-    
+
     posts.sort_by(|a, b| {
         if a.is_accepted != b.is_accepted {
             b.is_accepted.cmp(&a.is_accepted)
@@ -86,7 +97,12 @@ fn post_process_forum(dom: &tl::VDom) -> String {
 
 fn render_post_content(tag: &tl::HTMLTag, parser: &tl::Parser) -> String {
     let mut ignore_handles = std::collections::HashSet::new();
-    let score_selectors = [".score", ".vote-count", ".upvote-count", "[itemprop='upvoteCount']"];
+    let score_selectors = [
+        ".score",
+        ".vote-count",
+        ".upvote-count",
+        "[itemprop='upvoteCount']",
+    ];
     for selector in score_selectors {
         if let Some(nodes) = tag.query_selector(parser, selector) {
             for handle in nodes {
@@ -94,7 +110,7 @@ fn render_post_content(tag: &tl::HTMLTag, parser: &tl::Parser) -> String {
             }
         }
     }
-    
+
     let mut out = String::new();
     for handle in tag.children().top().iter() {
         if ignore_handles.contains(&handle.get_inner()) {
@@ -114,7 +130,12 @@ struct ForumPost {
 }
 
 fn extract_score(tag: &tl::HTMLTag, parser: &tl::Parser) -> i32 {
-    let score_selectors = [".score", ".vote-count", ".upvote-count", "[itemprop='upvoteCount']"];
+    let score_selectors = [
+        ".score",
+        ".vote-count",
+        ".upvote-count",
+        "[itemprop='upvoteCount']",
+    ];
     for selector in score_selectors {
         if let Some(mut nodes) = tag.query_selector(parser, selector) {
             if let Some(handle) = nodes.next() {
@@ -129,7 +150,9 @@ fn extract_score(tag: &tl::HTMLTag, parser: &tl::Parser) -> i32 {
 }
 
 fn parse_numeric_score(s: &str) -> Option<i32> {
-    let cleaned = s.trim().chars()
+    let cleaned = s
+        .trim()
+        .chars()
         .filter(|c| c.is_ascii_digit() || *c == '-' || *c == '+')
         .collect::<String>();
     cleaned.parse::<i32>().ok()

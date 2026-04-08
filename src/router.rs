@@ -1,17 +1,51 @@
+//! Routing & Input Classification
+//!
+//! The Router is responsible for classifying raw inputs (phrases vs. URLs)
+//! and mapping URLs to specific platform handlers (Wikipedia, Reddit, etc.)
+//! or the generic web crawler.
+
 use url::Url;
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum GitHubRouteType {
+    Readme,
+    Issues,
+    Issue(u64),
+}
 
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum PlatformRoute {
-    GitHub { owner: String, repo: String },
-    Reddit { url: String },
-    HackerNews { item_id: String },
-    Wikipedia { title: String },
-    StackOverflow { question_id: u64 },
-    ArXiv { paper_id: String },
-    YouTube { video_id: String, original_url: String },
-    Twitter { tweet_url: String },
-    TikTok { video_url: String },
+    GitHub {
+        owner: String,
+        repo: String,
+        route_type: GitHubRouteType,
+    },
+    Reddit {
+        url: String,
+    },
+    HackerNews {
+        item_id: String,
+    },
+    Wikipedia {
+        title: String,
+    },
+    StackOverflow {
+        question_id: u64,
+    },
+    ArXiv {
+        paper_id: String,
+    },
+    YouTube {
+        video_id: String,
+        original_url: String,
+    },
+    Twitter {
+        tweet_url: String,
+    },
+    TikTok {
+        video_url: String,
+    },
     Generic(Url),
 }
 
@@ -54,12 +88,30 @@ fn classify_url(url: Url) -> PlatformRoute {
 }
 
 fn classify_github(url: Url) -> PlatformRoute {
-    // Require exactly /owner/repo as the first two non-empty path segments.
-    let mut segments = url.path_segments().into_iter().flatten().filter(|s| !s.is_empty());
+    let mut segments = url
+        .path_segments()
+        .into_iter()
+        .flatten()
+        .filter(|s| !s.is_empty());
     if let (Some(owner), Some(repo)) = (segments.next(), segments.next()) {
+        let mut route_type = GitHubRouteType::Readme;
+        if let Some(next) = segments.next() {
+            if next == "issues" || next == "pulls" {
+                if let Some(id_str) = segments.next() {
+                    if let Ok(id) = id_str.parse::<u64>() {
+                        route_type = GitHubRouteType::Issue(id);
+                    } else {
+                        route_type = GitHubRouteType::Issues;
+                    }
+                } else {
+                    route_type = GitHubRouteType::Issues;
+                }
+            }
+        }
         PlatformRoute::GitHub {
             owner: owner.to_owned(),
             repo: repo.to_owned(),
+            route_type,
         }
     } else {
         PlatformRoute::Generic(url)
@@ -111,7 +163,10 @@ fn classify_youtube(url: Url) -> PlatformRoute {
     use crate::search::youtube::youtube_video_id;
     let original_url = url.to_string();
     if let Some(video_id) = youtube_video_id(&url) {
-        PlatformRoute::YouTube { video_id, original_url }
+        PlatformRoute::YouTube {
+            video_id,
+            original_url,
+        }
     } else {
         PlatformRoute::Generic(url)
     }
@@ -120,7 +175,9 @@ fn classify_youtube(url: Url) -> PlatformRoute {
 fn classify_twitter(url: Url) -> PlatformRoute {
     use crate::search::twitter::is_tweet_url;
     if is_tweet_url(&url) {
-        PlatformRoute::Twitter { tweet_url: url.to_string() }
+        PlatformRoute::Twitter {
+            tweet_url: url.to_string(),
+        }
     } else {
         // Profile pages, search, etc. — fall back to generic
         PlatformRoute::Generic(url)
@@ -130,7 +187,9 @@ fn classify_twitter(url: Url) -> PlatformRoute {
 fn classify_tiktok(url: Url) -> PlatformRoute {
     use crate::search::tiktok::is_tiktok_video_url;
     if is_tiktok_video_url(&url) {
-        PlatformRoute::TikTok { video_url: url.to_string() }
+        PlatformRoute::TikTok {
+            video_url: url.to_string(),
+        }
     } else {
         PlatformRoute::Generic(url)
     }

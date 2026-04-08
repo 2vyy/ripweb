@@ -1,3 +1,9 @@
+//! DuckDuckGo HTML Search
+//!
+//! Scrapes the non-JS `html.duckduckgo.com` endpoint to retrieve 
+//! Search Engine Result Page (SERP) data including titles, links, 
+//! and snippets.
+
 use url::Url;
 
 #[derive(Debug)]
@@ -29,7 +35,7 @@ pub fn ddg_search_url(query: &str) -> Url {
 /// DDG wraps real URLs in `/l/?uddg=<percent-encoded-url>` redirect hrefs.
 /// This function decodes those and returns the actual target URLs.
 /// Returns at most `limit` URLs.
-pub fn parse_ddg_html(html: &str, limit: usize) -> Vec<String> {
+pub fn parse_ddg_html(html: &str, limit: usize) -> Vec<super::SearchResult> {
     let Ok(dom) = tl::parse(html, tl::ParserOptions::default()) else {
         return Vec::new();
     };
@@ -51,9 +57,14 @@ pub fn parse_ddg_html(html: &str, limit: usize) -> Vec<String> {
         let Some(href_val) = tag.attributes().get("href").flatten() else { continue };
 
         let href = href_val.as_utf8_str();
+        let title = tag.inner_text(parser).into_owned();
 
         if let Some(decoded) = decode_ddg_href(href.as_ref()) {
-            results.push(decoded);
+            results.push(super::SearchResult {
+                url: decoded,
+                title,
+                snippet: None,
+            });
         }
     }
 
@@ -85,7 +96,7 @@ pub async fn search(
     client: &rquest::Client,
     query: &str,
     limit: usize,
-) -> Result<Vec<String>, DdgError> {
+) -> Result<Vec<super::SearchResult>, DdgError> {
     let url = ddg_search_url(query);
     let resp = client
         .get(url.as_str())

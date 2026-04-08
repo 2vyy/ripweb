@@ -1,3 +1,8 @@
+//! llms.txt Discovery
+//!
+//! Implements the draft spec for `/llms.txt` and `/.well-known/llms.txt`
+//! to discover machine-friendly documentation indexes.
+
 use url::Url;
 
 const CANDIDATE_PATHS: &[&str] = &["/llms.txt", "/.well-known/llms.txt"];

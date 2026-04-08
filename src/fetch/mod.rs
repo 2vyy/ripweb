@@ -1,3 +1,8 @@
+//! Fetch Orchestration
+//!
+//! Pulls together caching, client impersonation, crawling, and
+//! safety preflights into a unified fetching interface.
+
 pub mod cache;
 pub mod client;
 pub mod crawler;

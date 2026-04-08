@@ -1,4 +1,4 @@
-use ripweb::extract::{web::WebExtractor, Extractor};
+use ripweb::extract::{Extractor, web::WebExtractor};
 
 // ── Nuke List ────────────────────────────────────────────────────────────────
 
@@ -58,7 +58,10 @@ fn extracts_content_from_main_tag() {
     "#;
 
     let result = WebExtractor::extract(html, None).unwrap();
-    assert!(result.contains("# Main Heading"), "heading was not rendered as Markdown: {result}");
+    assert!(
+        result.contains("# Main Heading"),
+        "heading was not rendered as Markdown: {result}"
+    );
     assert!(result.contains("Content inside main tag"));
     assert!(!result.contains("Navigation noise"));
     assert!(!result.contains("Footer noise"));
@@ -75,7 +78,10 @@ fn extracts_content_from_article_tag_when_no_main() {
     "#;
 
     let result = WebExtractor::extract(html, None).unwrap();
-    assert!(result.contains("## Article Heading"), "heading was not rendered as Markdown: {result}");
+    assert!(
+        result.contains("## Article Heading"),
+        "heading was not rendered as Markdown: {result}"
+    );
     assert!(result.contains("Content inside article tag"));
     assert!(!result.contains("Header noise"));
 }
@@ -102,10 +108,19 @@ fn renders_links_lists_and_code_as_markdown() {
         result.contains("[documentation](https://example.com/docs?id=42)"),
         "link was not preserved as Markdown: {result}"
     );
-    assert!(result.contains("`ripweb fetch`"), "inline code missing: {result}");
-    assert!(result.contains("- First item"), "unordered list missing: {result}");
+    assert!(
+        result.contains("`ripweb fetch`"),
+        "inline code missing: {result}"
+    );
+    assert!(
+        result.contains("- First item"),
+        "unordered list missing: {result}"
+    );
     assert!(result.contains("```"), "code fence missing: {result}");
-    assert!(result.contains("println!(\"hello\");"), "code block content missing: {result}");
+    assert!(
+        result.contains("println!(\"hello\");"),
+        "code block content missing: {result}"
+    );
 }
 
 // ── SPA fallback ─────────────────────────────────────────────────────────────
@@ -254,9 +269,18 @@ fn torture_fake_main_prefers_real_content_container() {
     let html = include_bytes!("fixtures/torture/dom/fake_main_is_nav.html");
     let result = WebExtractor::extract(html, Some("text/html; charset=utf-8")).unwrap();
 
-    assert!(result.contains("# The Real Article Title"), "real article missing: {result}");
-    assert!(result.contains("actual article content"), "real prose missing: {result}");
-    assert!(!result.contains("Post 1"), "nav-only main should not win: {result}");
+    assert!(
+        result.contains("# The Real Article Title"),
+        "real article missing: {result}"
+    );
+    assert!(
+        result.contains("actual article content"),
+        "real prose missing: {result}"
+    );
+    assert!(
+        !result.contains("Post 1"),
+        "nav-only main should not win: {result}"
+    );
 }
 
 #[test]
@@ -305,9 +329,18 @@ fn torture_no_main_no_article_prefers_content_div() {
     let html = include_bytes!("fixtures/torture/dom/no_main_no_article.html");
     let result = WebExtractor::extract(html, Some("text/html; charset=utf-8")).unwrap();
 
-    assert!(result.contains("## Important Article Title"), "content div heading missing: {result}");
-    assert!(result.contains("real content inside a div"), "content div prose missing: {result}");
-    assert!(!result.contains("Site Header"), "header noise leaked: {result}");
+    assert!(
+        result.contains("## Important Article Title"),
+        "content div heading missing: {result}"
+    );
+    assert!(
+        result.contains("real content inside a div"),
+        "content div prose missing: {result}"
+    );
+    assert!(
+        !result.contains("Site Header"),
+        "header noise leaked: {result}"
+    );
     assert!(!result.contains("[Home]"), "nav links leaked: {result}");
 }
 
@@ -316,10 +349,22 @@ fn torture_content_in_table_is_extracted() {
     let html = include_bytes!("fixtures/torture/dom/content_in_table.html");
     let result = WebExtractor::extract(html, Some("text/html; charset=utf-8")).unwrap();
 
-    assert!(result.contains("## Policy Document"), "table heading missing: {result}");
-    assert!(result.contains("Section 1"), "table content missing: {result}");
-    assert!(result.contains("Old government and academic sites"), "table prose missing: {result}");
-    assert!(!result.contains("Government Portal"), "header noise leaked: {result}");
+    assert!(
+        result.contains("## Policy Document"),
+        "table heading missing: {result}"
+    );
+    assert!(
+        result.contains("Section 1"),
+        "table content missing: {result}"
+    );
+    assert!(
+        result.contains("Old government and academic sites"),
+        "table prose missing: {result}"
+    );
+    assert!(
+        !result.contains("Government Portal"),
+        "header noise leaked: {result}"
+    );
 }
 
 #[test]
@@ -344,9 +389,18 @@ fn prefers_real_content_over_link_heavy_main() {
 
     let result = WebExtractor::extract(html, Some("text/html; charset=utf-8")).unwrap();
 
-    assert!(result.contains("# Actual Story"), "story heading missing: {result}");
-    assert!(result.contains("long paragraph of text"), "story content missing: {result}");
-    assert!(!result.contains("Link 1"), "link-heavy main should have been penalized: {result}");
+    assert!(
+        result.contains("# Actual Story"),
+        "story heading missing: {result}"
+    );
+    assert!(
+        result.contains("long paragraph of text"),
+        "story content missing: {result}"
+    );
+    assert!(
+        !result.contains("Link 1"),
+        "link-heavy main should have been penalized: {result}"
+    );
 }
 
 #[test]
@@ -389,14 +443,16 @@ fn product_family_url_hint_prefers_buybox_over_link_grid() {
         result.contains("# Ip Man 1-4 (Box Set) (Blu-ray)"),
         "product title missing: {result}"
     );
-    assert!(result.contains("USD$22.99"), "product price missing: {result}");
+    assert!(
+        result.contains("USD$22.99"),
+        "product price missing: {result}"
+    );
     assert!(result.contains("Director"), "spec table missing: {result}");
     assert!(
         !result.contains("Similar product one"),
         "link grid should not beat the product detail container: {result}"
     );
 }
-
 
 // ── Page-Family Snapshot Tests ────────────────────────────────────────────────
 
@@ -409,7 +465,10 @@ fn snapshot_docs_sidebar_page() {
         Some("https://docs.example.com/api"),
     )
     .unwrap();
-    assert!(!result.contains("On this page"), "TOC clone leaked: {result}");
+    assert!(
+        !result.contains("On this page"),
+        "TOC clone leaked: {result}"
+    );
     assert!(result.contains("fetch"), "API content missing: {result}");
     assert!(result.contains("```rust"), "rust fence missing: {result}");
     insta::assert_snapshot!(result);
@@ -419,9 +478,18 @@ fn snapshot_docs_sidebar_page() {
 fn snapshot_listing_results_page() {
     let html = include_bytes!("fixtures/extract/listing_results.html");
     let result = WebExtractor::extract(html, Some("text/html; charset=utf-8")).unwrap();
-    assert!(result.contains("The Async Book"), "first result missing: {result}");
-    assert!(result.contains("Tokio Tutorial"), "second result missing: {result}");
-    assert!(!result.contains("Next page"), "pagination chrome leaked: {result}");
+    assert!(
+        result.contains("The Async Book"),
+        "first result missing: {result}"
+    );
+    assert!(
+        result.contains("Tokio Tutorial"),
+        "second result missing: {result}"
+    );
+    assert!(
+        !result.contains("Next page"),
+        "pagination chrome leaked: {result}"
+    );
     insta::assert_snapshot!(result);
 }
 
@@ -434,10 +502,16 @@ fn snapshot_product_detail_page() {
         Some("https://www.keychron.com/products/q1-pro"),
     )
     .unwrap();
-    assert!(result.contains("Keychron Q1 Pro"), "product title missing: {result}");
+    assert!(
+        result.contains("Keychron Q1 Pro"),
+        "product title missing: {result}"
+    );
     assert!(result.contains("199.00"), "price missing: {result}");
     assert!(result.contains("Hot-swap"), "spec table missing: {result}");
-    assert!(!result.contains("Customers also viewed"), "recommendation rail leaked: {result}");
+    assert!(
+        !result.contains("Customers also viewed"),
+        "recommendation rail leaked: {result}"
+    );
     insta::assert_snapshot!(result);
 }
 
@@ -450,9 +524,18 @@ fn snapshot_forum_thread_page() {
         Some("https://stackoverflow.com/questions/12345"),
     )
     .unwrap();
-    assert!(result.contains("borrow checker"), "question content missing: {result}");
-    assert!(result.contains("use-after-free"), "accepted answer missing: {result}");
-    assert!(!result.contains("Hot Network Questions"), "sidebar leaked: {result}");
+    assert!(
+        result.contains("borrow checker"),
+        "question content missing: {result}"
+    );
+    assert!(
+        result.contains("use-after-free"),
+        "accepted answer missing: {result}"
+    );
+    assert!(
+        !result.contains("Hot Network Questions"),
+        "sidebar leaked: {result}"
+    );
     assert!(result.contains("```rust"), "rust fence missing: {result}");
     insta::assert_snapshot!(result);
 }
@@ -486,22 +569,29 @@ fn test_forum_ranking_postprocess() {
     "#;
 
     let result = ripweb::extract::web::WebExtractor::extract_with_url(
-        html.as_bytes(), 
+        html.as_bytes(),
         Some("text/html"),
-        Some("https://example.com/forum/thread/123")
-    ).unwrap();
-    
+        Some("https://example.com/forum/thread/123"),
+    )
+    .unwrap();
+
     // Check for "Answers" header added by post-processor
     assert!(result.contains("## Answers"));
-    
+
     // Check order: a1 (accepted) -> a3 (score 50) -> a2 (score 10)
     let pos_a1 = result.find("First answer (accepted)").unwrap();
     let pos_a3 = result.find("Third answer (high score)").unwrap();
     let pos_a2 = result.find("Second answer here").unwrap();
-    
-    assert!(pos_a1 < pos_a3, "Accepted answer should come before high-score answer");
-    assert!(pos_a3 < pos_a2, "High-score answer should come before lower-score answer");
-    
+
+    assert!(
+        pos_a1 < pos_a3,
+        "Accepted answer should come before high-score answer"
+    );
+    assert!(
+        pos_a3 < pos_a2,
+        "High-score answer should come before lower-score answer"
+    );
+
     // Verify meta headers
     assert!(result.contains("[Score: 5] (Accepted Answer)"));
     assert!(result.contains("[Score: 50]"));

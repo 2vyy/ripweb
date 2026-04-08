@@ -1,3 +1,8 @@
+//! HackerNews (Algolia) API
+//!
+//! Integrates with the Algolia-backed HN search API to retrieve 
+//! story metadata and the full comment tree in a structured format.
+
 use serde::Deserialize;
 use url::Url;
 

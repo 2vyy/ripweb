@@ -1,3 +1,8 @@
+//! Wikipedia REST API
+//!
+//! Uses the MediaWiki REST v1 summary endpoint for article abstracts. 
+//! Extracts lead sections, infoboxes, and full-text rehydration.
+
 use serde::Deserialize;
 use url::Url;
 
@@ -22,13 +27,15 @@ pub fn wiki_summary_url(title: &str) -> Url {
 }
 
 /// Parse the Wikipedia REST v1 summary JSON response into clean Markdown.
-pub fn parse_wiki_summary(json: &str) -> Result<String, serde_json::Error> {
+pub fn parse_wiki_summary(json: &str, verbosity: u8) -> Result<String, serde_json::Error> {
     let summary: WikiSummary = serde_json::from_str(json)?;
     let mut out = format!("# {}\n\n", summary.title);
     if let Some(desc) = &summary.description {
         out.push_str(&format!("_{desc}_\n\n"));
     }
-    out.push_str(&summary.extract);
+    if verbosity >= 2 {
+        out.push_str(&summary.extract);
+    }
     Ok(out)
 }
 
@@ -65,7 +72,7 @@ mod tests {
             "description": "Multi-paradigm systems programming language",
             "extract": "Rust is a systems programming language focused on safety."
         }"#;
-        let result = parse_wiki_summary(json).unwrap();
+        let result = parse_wiki_summary(json, 2).unwrap();
         assert!(result.starts_with("# Rust (programming language)"));
         assert!(result.contains("Multi-paradigm systems programming language"));
         assert!(result.contains("Rust is a systems programming language"));
@@ -74,7 +81,7 @@ mod tests {
     #[test]
     fn parse_wiki_summary_handles_missing_description() {
         let json = r#"{"title": "Foo", "extract": "Bar baz."}"#;
-        let result = parse_wiki_summary(json).unwrap();
+        let result = parse_wiki_summary(json, 2).unwrap();
         assert_eq!(result, "# Foo\n\nBar baz.");
     }
 }

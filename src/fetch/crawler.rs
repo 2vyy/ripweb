@@ -1,16 +1,21 @@
+//! Web Crawler & Discovery
+//!
+//! Implements a BFS crawler that respects global page budgets and
+//! max-depth constraints. Extracts links and schedules future fetches.
+
 use std::collections::{HashSet, VecDeque};
 use std::sync::Arc;
 
 use url::Url;
 
-use crate::extract::{links::extract_content_links, web::WebExtractor};
 use super::{
     cache::Cache,
-    client::{fetch_with_retry, RetryConfig},
+    client::{RetryConfig, fetch_with_retry},
     normalize::normalize,
     politeness::DomainSemaphores,
     preflight::PreflightCheck,
 };
+use crate::extract::{links::extract_content_links, web::WebExtractor};
 
 /// Configuration for a single crawl run.
 pub struct CrawlerConfig {
@@ -22,7 +27,10 @@ pub struct CrawlerConfig {
 
 impl Default for CrawlerConfig {
     fn default() -> Self {
-        Self { max_depth: 1, max_pages: 10 }
+        Self {
+            max_depth: 1,
+            max_pages: 10,
+        }
     }
 }
 
@@ -54,7 +62,13 @@ impl Crawler {
         retry: RetryConfig,
         config: CrawlerConfig,
     ) -> Self {
-        Self { client, sems, cache, retry, config }
+        Self {
+            client,
+            sems,
+            cache,
+            retry,
+            config,
+        }
     }
 
     /// Crawl starting from `seed`, returning pages in discovery order.
@@ -80,7 +94,10 @@ impl Crawler {
             // Try cache first.
             let page = if let Some(cache) = &self.cache {
                 if let Some(cached) = cache.get(&url_str).await {
-                    Some(FetchedPage { bytes: cached, content_type: None })
+                    Some(FetchedPage {
+                        bytes: cached,
+                        content_type: None,
+                    })
                 } else {
                     self.fetch_page(&url_str, &host).await
                 }
@@ -101,12 +118,15 @@ impl Crawler {
                 page.content_type.as_deref(),
                 Some(&url_str),
             )
-                .unwrap_or_else(|e| {
-                    tracing::warn!("extraction failed for {}: {}", url_str, e);
-                    String::new()
-                });
+            .unwrap_or_else(|e| {
+                tracing::warn!("extraction failed for {}: {}", url_str, e);
+                String::new()
+            });
 
-            results.push(CrawledPage { url: url_str.clone(), content });
+            results.push(CrawledPage {
+                url: url_str.clone(),
+                content,
+            });
 
             // Follow links only if we haven't hit max_depth.
             if depth < self.config.max_depth {
@@ -142,11 +162,7 @@ impl Crawler {
             .and_then(|v| v.to_str().ok())
             .and_then(|s| s.parse::<u64>().ok());
 
-        PreflightCheck::validate(
-            content_type.as_deref(),
-            content_length,
-        )
-        .ok()?;
+        PreflightCheck::validate(content_type.as_deref(), content_length).ok()?;
 
         resp.bytes().await.ok().map(|b| FetchedPage {
             bytes: b.to_vec(),

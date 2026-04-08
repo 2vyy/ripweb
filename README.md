@@ -59,11 +59,10 @@ ripweb/
 
 ## Key Features
 
-- **Keyless Platform APIs**: High-fidelity extraction for Wikipedia, StackOverflow, ArXiv, Reddit, HackerNews, and GitHub without requiring API keys.
+- **Verbosity-Driven Density**: Modulate output from minimalist links (V1) to full context with transcripts and Jina-reader rehydration (V3).
 - **Smart Probing**: Automatically detects `.md` suffixes and `llms.txt` indexes to avoid expensive HTML scraping.
 - **Markdown-First**: Heuristic-based generic extraction that preserves semantic structure (tables, code blocks, lists).
-- **Universal Fallback**: Integrated `r.jina.ai` proxy for JS-heavy or complex pages.
-- **Aggressive Minification**: Optional "Token Killer" mode and URL tracking parameter stripping.
+- **Universal Fallback**: Integrated `r.jina.ai` proxy for JS-heavy or complex pages at high verbosity.
 - **Privacy & Speed**: MASQ browser impersonation, local caching, and strict domain politeness.
 
 ## Documentation

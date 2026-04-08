@@ -1,260 +1,108 @@
 # Output Contract
 
-This document defines exactly what `ripweb` guarantees to emit. It is the source of truth for extraction, rendering, minification, tests, and benchmarks. If any of those disagree with this file, this file wins.
+This document defines exactly what `ripweb` guarantees to emit based on the selected **Verbosity Level**. It is the source of truth for extraction, rendering, tests, and benchmarks.
 
 ---
 
 ## 1. Design Goal
 
-`ripweb` has two related but distinct jobs:
+`ripweb` modulates information density to balance **context window usage** against **detail requirements**.
 
-- preserve useful structure for LLM research and downstream parsing
-- optionally compress that structure aggressively when token efficiency matters more than presentation
-
-The default contract is not "smallest possible output". It is "structured, trustworthy, and useful for downstream parsing."
-
-For the current phase of the project, Markdown extraction quality takes priority over token optimization experiments.
+- **V1 (Nucleus)**: High-speed discovery. Minimalist, list-based output for broad scanning.
+- **V2 (Signal)**: Standard research. Balanced snippets, summaries, and capped prose.
+- **V3 (Full Context)**: Exhaustive detail. Full structured content, transcripts, and comments.
 
 ---
 
-## 2. Output Modes
+## 2. Verbosity Levels
 
-### `markdown` (default)
+### Level 1: Nucleus
+**Goal**: Identify sources and core headlines with near-zero token overhead.
 
-Guarantees:
+- **Generic Web**: `- [Page Title](URL)` only.
+- **Search (SERP)**: List of `- [Title](URL)`.
+- **Platforms**:
+    - **GitHub**: List of Issue Titles + Numbers + Labels.
+    - **Reddit**: Post Title + [Score/Subreddit].
+    - **Wikipedia**: Definition sentence only.
+    - **YouTube**: Basic Meta (Title/Author/Duration).
+    - **StackOverflow**: Question Title + Link.
 
-- document structure is preserved when meaningfully represented in the source
-- headings, paragraphs, links, inline code, fenced code blocks, lists, and source boundaries are preserved
-- obvious page chrome and tracking junk are removed
-- output is readable by both humans and LLMs
-- output is stable enough for snapshot and golden testing
+### Level 2: Signal (Default)
+**Goal**: Understand the value of a source via snippets and primary summaries.
 
-This mode is the canonical intermediate representation for generic web extraction. It is the main product surface.
+- **Generic Web**: Title + URL + first ~2000 characters of extracted text.
+- **Search (SERP)**: `- [Title](URL) \n  > {snippet}`.
+- **Platforms**:
+    - **GitHub**: Issue Title + OP's Description.
+    - **Reddit**: Post Body + Top 2 Upvoted Comments.
+    - **Wikipedia**: Full Lead Section + Infobox data.
+    - **YouTube**: Basic Meta + Video Description.
+    - **StackOverflow**: Question Title + Highest Voted Answer.
 
-### `aggressive`
+### Level 3: Full Context
+**Goal**: Comprehensive data retrieval for deep troubleshooting or analysis.
 
-Operates on top of the Markdown representation.
-
-Guarantees:
-
-- main information content is preserved as much as practical
-- paragraph breaks and fenced code blocks are preserved
-- token count is reduced aggressively through whitespace collapse and large-token truncation
-
-This mode is allowed to reduce presentation quality if it materially improves token efficiency. It must not drive core parser decisions until the Markdown path is stable.
-
-A transform that merely looks shorter is not valid. OpenAI tokenizer measurements against the evaluation corpus decide whether a transform belongs in aggressive mode.
+- **Generic Web**: Full rehydrated Markdown (forced via **Jina Reader** proxy).
+- **Search (SERP)**: Detailed cards with Engine, Date, and longer Snippets.
+- **Platforms**:
+    - **GitHub**: Issue Title + OP Description + **All Comments**.
+    - **Reddit**: Post Body + **Full Comment Tree**.
+    - **Wikipedia**: **Full Article** Markdown (Generic fetch).
+    - **YouTube**: Basic Meta + **Full Transcripts** (if available).
+    - **StackOverflow**: Question Title + **All Answers**.
 
 ---
 
 ## 3. Global Output Structure
 
-### Single page
-
-```md
-# Title
-
-Intro paragraph.
-
-## Section
-
-Body content.
-```
-
-### Multi-page crawl
-
-Every page is separated with a source delimiter:
+### Source Delimiters
+Every document/page in a multi-page crawl or search is separated with a source delimiter:
 
 ```md
 # --- [Source: https://example.com/page] ---
 ```
 
-Rules:
-
-- source delimiters appear before page content, never after
-- source URLs have fragments removed
-- source URLs have tracking parameters stripped when safe
-- delimiters are part of the stable public output contract and must not be omitted or reformatted
+- Source delimiters appear **before** page content.
+- URLs are normalized (fragments removed, tracking parameters stripped).
 
 ---
 
-## 4. Element Contract
+## 4. Element Contract (General)
 
-### Titles and headings
+Regardless of verbosity, when prose is emitted, it follows these rules:
 
-- page titles and HTML headings map to Markdown headings
-- `h1` → `#`, `h2` → `##`, down through `h6`
-- headings remain separate blocks; they are never flattened into body text
+### Headings
+- `h1` → `#`, `h2` → `##`, down to `h6`.
+- Headings remain separate blocks (`\n\n` separation).
 
-### Paragraphs
-
-- prose paragraphs remain separate blocks
-- paragraph separation is `\n\n`
-- aggressive mode may collapse `3+` blank lines to `\n\n` but must preserve `\n\n`
+### Code Blocks
+- Preformatted code renders as fenced Markdown code blocks (```).
+- Indentation and internal whitespace are preserved exactly.
 
 ### Links
-
-- links are rendered inline as Markdown links when both label and target exist
-- tracking parameters are stripped when doing so does not change the semantic destination
-- if link text is missing, the URL is used as the label
-
-Preferred form:
-
-```md
-[Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
-```
-
-Not permitted in default mode:
-
-- link dictionaries at the bottom of the page
-- XML wrappers around links
-- dropping the URL entirely when it carries real value
-
-### Lists
-
-- unordered lists use `-`
-- ordered lists use `1.`, `2.`, `3.`
-- list items remain grouped as lists; they are never flattened into prose
-
-### Inline code
-
-- inline code uses backticks
-- aggressive mode preserves inline code markers when practical
-
-### Code blocks
-
-- preformatted code renders as fenced Markdown code blocks
-- indentation inside fenced blocks is preserved exactly
-- aggressive mode must not collapse whitespace inside fenced code blocks
-- whitespace collapsing must pause while iterating over `<pre>`, `<code>`, or Markdown code block content
-
-### Blockquotes
-
-- blockquotes use Markdown `>`
-
-### Tables
-
-- a table that can be preserved in Markdown without major corruption is preserved
-- a table that is too malformed or purely presentational degrades gracefully to readable text rather than emitting broken pseudo-tables
-
-### Images
-
-- decorative images are ignored
-- meaningful images may be represented as text placeholders using alt text when that adds value
-- binary image payloads are not part of the text contract
+- Rendered as `[label](url)`.
+- If label is missing, URL is used as label.
 
 ---
 
 ## 5. Content Inclusion Rules
 
-Prefer keeping:
+**Keep**:
+- Main article/documentation body.
+- API signatures and code examples.
+- High-voted answers and verified comments.
 
-- main article, documentation, or tutorial content
-- meaningful headings and section labels
-- code examples
-- important links
-- list structure
-- author and date metadata when nearby and clearly content-relevant
-
-Prefer dropping:
-
-- navigation
-- headers and footers
-- cookie banners
-- repeated sidebars
-- social share blocks
-- recommendation rails
-- forms and unrelated controls
-- analytics and tracking junk
-- script and style content unless used as an explicit extraction fallback
+**Drop**:
+- Navigation menus, headers/footers, and cookie banners.
+- Social share widgets and "Recommended for you" rails.
+- Analytics scripts and presentational SVG/iframes.
 
 ---
 
-## 6. Page-Family Direction
+## 6. Evaluation Criteria
 
-The extraction system must evolve toward broad page-family handling rather than one-off site hacks.
-
-Families and their inclusion rules:
-
-| Family | Keep | Drop |
-|---|---|---|
-| article / blog / news | title, byline, body, inline links | related rails, share blocks, comments by default |
-| docs / reference | heading hierarchy, code, API signatures, callouts | sidebar trees, TOC clones, copy buttons, version pickers |
-| search / listing | result title, destination URL, snippet, ranking | query controls, filters, nav/footer chrome |
-| product / commerce | title, price, rating, short description, specs | recommendation rails, carousels, store widgets |
-| forum / discussion | original post, top-ranked answers, score/author metadata | long related-link rails, low-signal replies |
-| utility / interstitial | compact semantic summary | pretending it is an article |
-
-The extractor identifies page family before applying extraction rules. See [EXTRACTION.md](EXTRACTION.md) for how family detection works.
-
----
-
-## 7. SPA and Structured Data Fallbacks
-
-Fallback extraction from sources like `__NEXT_DATA__` is allowed when the visible DOM is too sparse (under 100 words of extracted text).
-
-Rules:
-
-- fallback content is normalized into the same public output contract
-- JSON string harvesting prefers prose over metadata
-- fallback output does not bypass output-mode guarantees
-
----
-
-## 8. Aggressive Mode Rules
-
-Allowed transforms:
-
-- collapse low-value whitespace outside fenced code
-- preserve paragraph separators (`\n\n`)
-- truncate giant base64 blobs and long hashes to `[BASE64_TRUNCATED]`
-- strip low-value URL tracking parameters
-- prefer concise, machine-friendly output over presentation polish
-
-Implementation note: use a zero-allocation, single-pass state machine. Maintain a `last_char_was_whitespace` state variable. No multi-pass regex.
-
-Forbidden transforms:
-
-- merging separate pages without delimiters
-- corrupting fenced code blocks
-- destroying all paragraph boundaries
-- discarding links indiscriminately
-- producing unreadable output
-
----
-
-## 9. Non-Goals
-
-The default contract is not trying to be:
-
-- perfect visual reproduction of the source page
-- full HTML fidelity
-- a browser DOM export
-- XML-first by default
-
-XML-like wrapping may exist as a future optional mode (`--xml-wrap`) but is not the canonical output format.
-
----
-
-## 10. Evaluation Criteria
-
-Any change to extraction or rendering is judged on:
-
-- **structural fidelity** — headings, paragraphs, lists, links, and code preserved correctly
-- **signal retention** — important information kept
-- **noise removal** — navigation, boilerplate, and repetition dropped
-- **page-family fitness** — parser behaved correctly for the type of page
-- **token efficiency** — especially in `aggressive` mode, and only after the Markdown path is healthy
-- **stability** — snapshots and goldens remain intentionally reviewable
-
----
-
-## 11. Future Extension Points
-
-Possible future modes:
-
-- XML-wrapped mode for downstream agent workflows
-- per-platform output adapters
-- additional structured research modes
-
-Constraint: all future modes must be derived from a stable semantic intermediate representation, not from ad hoc string munging.
+Extraction changes are judged on:
+1. **Structural Fidelity**: Headings, lists, and code blocks must remain valid Markdown.
+2. **Signal Retention**: Key information for the given verbosity level must be present.
+3. **Noise Removal**: Boilerplate must be cleanly stripped.

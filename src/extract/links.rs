@@ -1,3 +1,8 @@
+//! Link Extraction
+//!
+//! Extracts unique, normalized URLs from a DOM subtree to support
+//! discovery and multi-page crawling.
+
 use std::collections::HashSet;
 
 use url::Url;
@@ -5,8 +10,7 @@ use url::Url;
 /// Tags whose subtrees are not crawled for outbound links — mirrors the
 /// nuke list in `web.rs` for content extraction.
 const SKIP_TAGS: &[&str] = &[
-    "nav", "footer", "header", "aside", "style", "script", "noscript",
-    "svg", "iframe", "form",
+    "nav", "footer", "header", "aside", "style", "script", "noscript", "svg", "iframe", "form",
 ];
 
 /// Content root tags — only links found inside these are followed.
@@ -30,10 +34,7 @@ pub fn extract_content_links(html: &str, base: &Url) -> Vec<Url> {
     let mut links: Vec<Url> = Vec::new();
 
     for root_tag in CONTENT_ROOTS {
-        let Some(handle) = dom
-            .query_selector(root_tag)
-            .and_then(|mut it| it.next())
-        else {
+        let Some(handle) = dom.query_selector(root_tag).and_then(|mut it| it.next()) else {
             continue;
         };
 
@@ -139,7 +140,10 @@ mod tests {
         assert!(paths.contains(&"/page1"), "page1 missing: {:?}", paths);
         assert!(paths.contains(&"/page2"), "page2 missing: {:?}", paths);
         assert!(!paths.contains(&"/nav-link"), "nav link must be excluded");
-        assert!(!paths.contains(&"/footer-link"), "footer link must be excluded");
+        assert!(
+            !paths.contains(&"/footer-link"),
+            "footer link must be excluded"
+        );
     }
 
     #[test]

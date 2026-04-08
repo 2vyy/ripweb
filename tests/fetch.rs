@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use ripweb::fetch::{
     cache::{Cache, MAX_CACHE_AGE},
-    client::{build_client, fetch_with_retry, FetchError, RetryConfig},
+    client::{FetchError, RetryConfig, build_client, fetch_with_retry},
     llms_txt::fetch_llms_txt,
 };
 use url::Url;
@@ -215,8 +215,7 @@ async fn cache_fresh_entry_is_returned() {
 
 // ── llms.txt discovery ────────────────────────────────────────────────────────
 
-const LLMS_BODY: &str =
-    "# API Reference\n\nThis site's LLM-optimised context file.\nAll endpoints are documented here.";
+const LLMS_BODY: &str = "# API Reference\n\nThis site's LLM-optimised context file.\nAll endpoints are documented here.";
 
 #[tokio::test]
 async fn llms_txt_found_at_root_path() {
@@ -286,7 +285,9 @@ async fn llms_txt_success_means_html_page_is_never_fetched() {
 
     Mock::given(method("GET"))
         .and(path("/"))
-        .respond_with(ResponseTemplate::new(200).set_body_string("<html>should not be fetched</html>"))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_string("<html>should not be fetched</html>"),
+        )
         .expect(0)
         .mount(&server)
         .await;
@@ -329,7 +330,8 @@ async fn politeness_limits_concurrent_requests_per_host() {
 
     assert!(
         waited >= Duration::from_millis(40),
-        "4th request was not blocked by the semaphore (waited {:?})", waited
+        "4th request was not blocked by the semaphore (waited {:?})",
+        waited
     );
 
     drop(p2);
@@ -345,13 +347,13 @@ async fn politeness_different_hosts_are_independent() {
     let _a2 = sems.acquire("alpha.example.com").await;
     let _a3 = sems.acquire("alpha.example.com").await;
 
-    let got_b = tokio::time::timeout(
-        Duration::from_millis(50),
-        sems.acquire("beta.example.com"),
-    )
-    .await;
+    let got_b =
+        tokio::time::timeout(Duration::from_millis(50), sems.acquire("beta.example.com")).await;
 
-    assert!(got_b.is_ok(), "request to different host was blocked by unrelated semaphore");
+    assert!(
+        got_b.is_ok(),
+        "request to different host was blocked by unrelated semaphore"
+    );
 }
 
 /// Host key must be normalised to lowercase so `example.com` and `EXAMPLE.COM`
@@ -362,11 +364,8 @@ async fn politeness_host_key_is_case_insensitive() {
 
     let p1 = sems.acquire("Example.Com").await;
 
-    let blocked = tokio::time::timeout(
-        Duration::from_millis(30),
-        sems.acquire("EXAMPLE.COM"),
-    )
-    .await;
+    let blocked =
+        tokio::time::timeout(Duration::from_millis(30), sems.acquire("EXAMPLE.COM")).await;
 
     assert!(blocked.is_err(), "uppercase variant bypassed the semaphore");
     drop(p1);

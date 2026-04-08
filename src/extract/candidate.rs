@@ -1,6 +1,14 @@
-use super::boilerplate::{NUKE_TAGS, NEGATIVE_HINTS, tag_attribute, should_strip_subtree};
-use super::family::{PageFamily, TextStats, classify_candidate_family, family_score_adjustment, count_price_markers, count_spec_markers};
-use super::render::{render_tag, cleanup_markdown};
+//! Content Candidate Selection
+//!
+//! Implements the scoring logic for finding the "Main" content block
+//! of an HTML page. Uses class/ID hints and text density metrics.
+
+use super::boilerplate::{NEGATIVE_HINTS, NUKE_TAGS, should_strip_subtree, tag_attribute};
+use super::family::{
+    PageFamily, TextStats, classify_candidate_family, count_price_markers, count_spec_markers,
+    family_score_adjustment,
+};
+use super::render::{cleanup_markdown, render_tag};
 
 const CONTENT_ROOTS: &[&str] = &["main", "article"];
 const FALLBACK_CANDIDATE_TAGS: &[&str] = &["section", "table"];
@@ -10,14 +18,22 @@ const POSITIVE_HINTS: &[&str] = &[
     "prose", "story",
 ];
 const HINTED_DIV_SELECTORS: &[&str] = &[
-    r#"div[id*="content"]"#,  r#"div[class*="content"]"#,
-    r#"div[id*="article"]"#,  r#"div[class*="article"]"#,
-    r#"div[id*="post"]"#,     r#"div[class*="post"]"#,
-    r#"div[id*="entry"]"#,    r#"div[class*="entry"]"#,
-    r#"div[id*="doc"]"#,      r#"div[class*="doc"]"#,
-    r#"div[id*="markdown"]"#, r#"div[class*="markdown"]"#,
-    r#"div[id*="prose"]"#,    r#"div[class*="prose"]"#,
-    r#"div[id*="story"]"#,    r#"div[class*="story"]"#,
+    r#"div[id*="content"]"#,
+    r#"div[class*="content"]"#,
+    r#"div[id*="article"]"#,
+    r#"div[class*="article"]"#,
+    r#"div[id*="post"]"#,
+    r#"div[class*="post"]"#,
+    r#"div[id*="entry"]"#,
+    r#"div[class*="entry"]"#,
+    r#"div[id*="doc"]"#,
+    r#"div[class*="doc"]"#,
+    r#"div[id*="markdown"]"#,
+    r#"div[class*="markdown"]"#,
+    r#"div[id*="prose"]"#,
+    r#"div[class*="prose"]"#,
+    r#"div[id*="story"]"#,
+    r#"div[class*="story"]"#,
 ];
 
 pub struct ScoredCandidate {
@@ -43,10 +59,18 @@ pub fn score_text(text: &str) -> TextStats {
             in_code_fence = !in_code_fence;
             continue;
         }
-        if in_code_fence { continue }
-        if trimmed.starts_with('#') { stats.headings += 1; }
-        if trimmed.starts_with("- ") || ordered_list_prefix(trimmed) { stats.list_items += 1; }
-        if !trimmed.is_empty() && trimmed.len() < 35 { stats.short_lines += 1; }
+        if in_code_fence {
+            continue;
+        }
+        if trimmed.starts_with('#') {
+            stats.headings += 1;
+        }
+        if trimmed.starts_with("- ") || ordered_list_prefix(trimmed) {
+            stats.list_items += 1;
+        }
+        if !trimmed.is_empty() && trimmed.len() < 35 {
+            stats.short_lines += 1;
+        }
         stats.link_count += trimmed.matches("](").count();
     }
     stats.paragraphs = text
@@ -63,7 +87,9 @@ pub fn extract_best_candidate(dom: &tl::VDom, family: PageFamily) -> String {
     for selector in CONTENT_ROOTS {
         if let Some(hits) = dom.query_selector(selector) {
             for handle in hits {
-                let Some(node) = handle.get(parser) else { continue };
+                let Some(node) = handle.get(parser) else {
+                    continue;
+                };
                 if let Some(tag) = node.as_tag() {
                     consider_candidate(&mut best, score_candidate(tag, parser, family, 0));
                 }
@@ -73,7 +99,9 @@ pub fn extract_best_candidate(dom: &tl::VDom, family: PageFamily) -> String {
     for selector in FALLBACK_CANDIDATE_TAGS {
         if let Some(hits) = dom.query_selector(selector) {
             for handle in hits.take(MAX_FALLBACK_CANDIDATES_PER_SELECTOR) {
-                let Some(node) = handle.get(parser) else { continue };
+                let Some(node) = handle.get(parser) else {
+                    continue;
+                };
                 if let Some(tag) = node.as_tag() {
                     consider_candidate(&mut best, score_candidate(tag, parser, family, 1));
                 }
@@ -83,7 +111,9 @@ pub fn extract_best_candidate(dom: &tl::VDom, family: PageFamily) -> String {
     for selector in HINTED_DIV_SELECTORS {
         if let Some(hits) = dom.query_selector(selector) {
             for handle in hits.take(MAX_FALLBACK_CANDIDATES_PER_SELECTOR) {
-                let Some(node) = handle.get(parser) else { continue };
+                let Some(node) = handle.get(parser) else {
+                    continue;
+                };
                 if let Some(tag) = node.as_tag() {
                     // hinted divs can be at any depth; assign a moderate baseline depth
                     consider_candidate(&mut best, score_candidate(tag, parser, family, 2));
@@ -103,7 +133,10 @@ pub fn extract_best_candidate(dom: &tl::VDom, family: PageFamily) -> String {
 
 fn consider_candidate(best: &mut Option<ScoredCandidate>, candidate: Option<ScoredCandidate>) {
     let Some(candidate) = candidate else { return };
-    if best.as_ref().is_none_or(|current| candidate.score > current.score) {
+    if best
+        .as_ref()
+        .is_none_or(|current| candidate.score > current.score)
+    {
         *best = Some(candidate);
     }
 }
@@ -122,10 +155,14 @@ fn score_candidate(
     }
 
     let text = cleanup_markdown(&render_tag(tag, parser));
-    if text.is_empty() { return None; }
+    if text.is_empty() {
+        return None;
+    }
 
     let stats = score_text(&text);
-    if stats.word_count == 0 { return None; }
+    if stats.word_count == 0 {
+        return None;
+    }
 
     let candidate_family = classify_candidate_family(tag, &text, &stats, family);
     let price_markers = count_price_markers(&text);
@@ -157,12 +194,16 @@ fn score_candidate(
     score += match name.as_str() {
         "article" => {
             let mut boost = 80;
-            if stats.word_count > 150 { boost += 40; }
+            if stats.word_count > 150 {
+                boost += 40;
+            }
             boost
         }
         "main" => {
             let mut boost = 60;
-            if stats.word_count > 150 { boost += 30; }
+            if stats.word_count > 150 {
+                boost += 30;
+            }
             boost
         }
         "section" => 20,
@@ -184,10 +225,14 @@ fn score_candidate(
     }
 
     for hint in POSITIVE_HINTS {
-        if hint_text.contains(hint) { score += 24; }
+        if hint_text.contains(hint) {
+            score += 24;
+        }
     }
     for hint in NEGATIVE_HINTS {
-        if hint_text.contains(hint) { score -= 60; }
+        if hint_text.contains(hint) {
+            score -= 60;
+        }
     }
 
     score += family_score_adjustment(candidate_family, &stats, price_markers, spec_markers);

@@ -1,3 +1,8 @@
+//! HTTP Client & MASQ
+//!
+//! Provides the core `FetchClient` which uses `rquest` to impersonate
+//! browsers. Handles retries (429/503), timeouts, and proxy routing.
+
 use std::time::Duration;
 
 use rquest::Client;
@@ -24,9 +29,7 @@ impl Default for RetryConfig {
 
 /// Build the shared `rquest::Client` with a strict 10-second timeout.
 pub fn build_client() -> rquest::Result<Client> {
-    Client::builder()
-        .timeout(Duration::from_secs(10))
-        .build()
+    Client::builder().timeout(Duration::from_secs(10)).build()
 }
 
 /// Returns `true` for status codes that should trigger a retry.
@@ -47,11 +50,7 @@ pub async fn fetch_with_retry(
     let mut last_status: u16 = 0;
 
     for attempt in 0..=cfg.max_retries {
-        let resp = client
-            .get(url)
-            .send()
-            .await
-            .map_err(FetchError::Network)?;
+        let resp = client.get(url).send().await.map_err(FetchError::Network)?;
 
         let status = resp.status().as_u16();
 

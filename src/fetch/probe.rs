@@ -1,3 +1,8 @@
+//! URL Probing
+//!
+//! Implements speculative HEAD/GET requests to find hidden `.md`
+//! or `llms.txt` files before resorting to full HTML scraping.
+
 use url::Url;
 
 /// Probe a URL for the highest-quality content representation,
@@ -10,10 +15,7 @@ use url::Url;
 /// 4. `<url>/index.html.md` — alternative Mintlify pattern
 ///
 /// Returns `Some((content, source_hint))` on first hit, `None` if all miss.
-pub async fn probe_markdown(
-    client: &rquest::Client,
-    url: &Url,
-) -> Option<(String, ProbeSource)> {
+pub async fn probe_markdown(client: &rquest::Client, url: &Url) -> Option<(String, ProbeSource)> {
     // 1. Try `.md` suffix on the exact page URL
     if let Some(md_url) = with_md_suffix(url) {
         if let Some(text) = try_get_text(client, &md_url).await {
@@ -100,7 +102,11 @@ async fn try_get_text(client: &rquest::Client, url: &Url) -> Option<String> {
         return None;
     }
     let text = resp.text().await.ok()?;
-    if text.trim().is_empty() { None } else { Some(text) }
+    if text.trim().is_empty() {
+        None
+    } else {
+        Some(text)
+    }
 }
 
 #[cfg(test)]

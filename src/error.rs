@@ -1,3 +1,8 @@
+//! Central Error Definitions
+//!
+//! Provides the `RipwebError` enum which maps internal failures (Network,
+//! Config, RateLimit) to CLI exit codes and user-facing messages.
+
 use std::fmt;
 
 use crate::fetch::FetchError;

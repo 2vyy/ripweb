@@ -1,3 +1,8 @@
+//! URL Normalization
+//!
+//! Standardizes URLs by stripping fragments, removing tracking junk,
+//! and ensuring consistent trailing slash behavior for caching.
+
 use url::Url;
 
 /// Normalise a URL for deduplication and cache-key purposes:

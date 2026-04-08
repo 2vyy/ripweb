@@ -1,6 +1,5 @@
 use ripweb::search::{
     duckduckgo::{ddg_search_url, parse_ddg_html},
-    github::github_raw_url,
     hackernews::{hn_api_url, parse_hn_json},
     reddit::{parse_reddit_json, reddit_json_url},
 };
@@ -115,12 +114,14 @@ fn ddg_url_encodes_query_in_q_param() {
 fn ddg_parse_extracts_decoded_urls_from_fixture() {
     let urls = parse_ddg_html(DDG_FIXTURE, 10);
     assert!(
-        urls.iter().any(|u| u.contains("doc.rust-lang.org")),
-        "async book URL missing: {:?}", urls
+        urls.iter().any(|u| u.url.contains("doc.rust-lang.org")),
+        "async book URL missing: {:?}",
+        urls
     );
     assert!(
-        urls.iter().any(|u| u.contains("tokio.rs")),
-        "tokio URL missing: {:?}", urls
+        urls.iter().any(|u| u.url.contains("tokio.rs")),
+        "tokio URL missing: {:?}",
+        urls
     );
 }
 
@@ -133,14 +134,16 @@ fn ddg_parse_respects_limit() {
 #[test]
 fn ddg_parse_returns_decoded_urls_not_ddg_redirects() {
     let urls = parse_ddg_html(DDG_FIXTURE, 10);
-    for url in &urls {
+    for result in &urls {
         assert!(
-            !url.contains("duckduckgo.com/l/"),
-            "DDG redirect URL leaked into results: {url}"
+            !result.url.contains("duckduckgo.com/l/"),
+            "DDG redirect URL leaked into results: {}",
+            result.url
         );
         assert!(
-            url.starts_with("http://") || url.starts_with("https://"),
-            "result is not an absolute URL: {url}"
+            result.url.starts_with("http://") || result.url.starts_with("https://"),
+            "result is not an absolute URL: {}",
+            result.url
         );
     }
 }
@@ -155,40 +158,6 @@ fn ddg_parse_handles_limit_larger_than_results() {
 fn ddg_parse_returns_empty_on_no_results() {
     let urls = parse_ddg_html("<html><body><p>No results found.</p></body></html>", 10);
     assert!(urls.is_empty());
-}
-
-// ── GitHub ────────────────────────────────────────────────────────────────────
-
-#[test]
-fn github_raw_url_points_to_raw_githubusercontent() {
-    let url = github_raw_url("tokio-rs", "tokio");
-    assert!(url.host_str() == Some("raw.githubusercontent.com"), "host: {url}");
-}
-
-#[test]
-fn github_raw_url_contains_owner_and_repo() {
-    let url = github_raw_url("rust-lang", "rust");
-    assert!(url.path().contains("/rust-lang/"), "path: {}", url.path());
-    assert!(url.path().contains("/rust/"), "path: {}", url.path());
-}
-
-#[test]
-fn github_raw_url_targets_head_ref_not_hardcoded_main() {
-    let url = github_raw_url("tokio-rs", "tokio");
-    assert!(
-        url.path().contains("/HEAD/"),
-        "URL should use /HEAD/ ref, got path: {}", url.path()
-    );
-    assert!(
-        !url.path().contains("/main/"),
-        "/main/ hard-codes the branch name, use /HEAD/ instead"
-    );
-}
-
-#[test]
-fn github_raw_url_ends_with_readme() {
-    let url = github_raw_url("tokio-rs", "tokio");
-    assert!(url.path().ends_with("README.md"), "path: {}", url.path());
 }
 
 // ── HackerNews ────────────────────────────────────────────────────────────────
@@ -210,22 +179,32 @@ fn hn_api_url_uses_v1_items_endpoint() {
     let url = hn_api_url("12345");
     assert!(
         url.path().starts_with("/api/v1/items/"),
-        "path: {}", url.path()
+        "path: {}",
+        url.path()
     );
 }
 
 #[test]
 fn hn_parse_extracts_title() {
     let content = parse_hn_json(HN_FIXTURE).unwrap();
-    assert_eq!(content.title, "Show HN: ripweb – fast local CLI for LLM context");
+    assert_eq!(
+        content.title,
+        "Show HN: ripweb – fast local CLI for LLM context"
+    );
 }
 
 #[test]
 fn hn_parse_extracts_op_text_and_strips_html() {
     let content = parse_hn_json(HN_FIXTURE).unwrap();
     let text = content.text.unwrap();
-    assert!(text.contains("scrapes web content"), "OP text missing: {text}");
-    assert!(!text.contains("<p>"), "HTML tags must be stripped from text: {text}");
+    assert!(
+        text.contains("scrapes web content"),
+        "OP text missing: {text}"
+    );
+    assert!(
+        !text.contains("<p>"),
+        "HTML tags must be stripped from text: {text}"
+    );
 }
 
 #[test]
@@ -246,7 +225,10 @@ fn hn_parse_skips_null_text_children() {
 fn hn_parse_strips_html_from_comment_text() {
     let content = parse_hn_json(HN_FIXTURE).unwrap();
     for comment in &content.comments {
-        assert!(!comment.contains("<p>"), "HTML tag found in comment: {comment}");
+        assert!(
+            !comment.contains("<p>"),
+            "HTML tag found in comment: {comment}"
+        );
     }
 }
 
@@ -282,7 +264,8 @@ fn reddit_parse_extracts_op_selftext() {
     let content = parse_reddit_json(REDDIT_FIXTURE).unwrap();
     assert!(
         content.selftext.contains("zero-cost abstractions"),
-        "selftext: {}", content.selftext
+        "selftext: {}",
+        content.selftext
     );
 }
 
@@ -298,14 +281,20 @@ fn reddit_parse_includes_positive_score_comments() {
 fn reddit_parse_drops_zero_score_comments() {
     let content = parse_reddit_json(REDDIT_FIXTURE).unwrap();
     let joined = content.comments.join(" ");
-    assert!(!joined.contains("low-quality reply"), "score=0 comment must be dropped");
+    assert!(
+        !joined.contains("low-quality reply"),
+        "score=0 comment must be dropped"
+    );
 }
 
 #[test]
 fn reddit_parse_drops_negative_score_comments() {
     let content = parse_reddit_json(REDDIT_FIXTURE).unwrap();
     let joined = content.comments.join(" ");
-    assert!(!joined.contains("downvoted spam"), "score<0 comment must be dropped");
+    assert!(
+        !joined.contains("downvoted spam"),
+        "score<0 comment must be dropped"
+    );
 }
 
 #[test]

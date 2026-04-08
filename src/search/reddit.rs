@@ -1,3 +1,8 @@
+//! Reddit JSON API
+//!
+//! Fetches structured thread and comment data by appending `.json` 
+//! to Reddit URLs. Filters comments by score to preserve signal.
+
 use serde::Deserialize;
 use url::Url;
 

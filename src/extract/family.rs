@@ -1,5 +1,10 @@
-use crate::config::family_hint_for_host;
+//! Page Family Classification
+//!
+//! Categorizes pages into families (Docs, Forum, Product, Article)
+//! to apply specialized extraction and re-ranking heuristics.
+
 use super::boilerplate::tag_attribute;
+use crate::config::family_hint_for_host;
 use url::Url;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -26,15 +31,27 @@ pub struct TextStats {
 }
 
 const DOC_HINTS: &[&str] = &[
-    "doc", "docs", "reference", "api", "manual", "guide", "guides", "tutorial", "learn",
-    "developer", "developers", "readthedocs", "gitbook", "docusaurus",
+    "doc",
+    "docs",
+    "reference",
+    "api",
+    "manual",
+    "guide",
+    "guides",
+    "tutorial",
+    "learn",
+    "developer",
+    "developers",
+    "readthedocs",
+    "gitbook",
+    "docusaurus",
 ];
 const ARTICLE_HINTS: &[&str] = &[
     "article", "post", "story", "blog", "news", "entry", "content", "prose",
 ];
 const PRODUCT_HINTS: &[&str] = &[
-    "product", "pdp", "buybox", "price", "pricing", "spec", "specs", "sku", "item",
-    "details", "purchase", "cart", "merchant", "offer",
+    "product", "pdp", "buybox", "price", "pricing", "spec", "specs", "sku", "item", "details",
+    "purchase", "cart", "merchant", "offer",
 ];
 
 pub fn url_family_hint(source_url: &str) -> Option<PageFamily> {
@@ -56,13 +73,25 @@ pub fn url_family_hint(source_url: &str) -> Option<PageFamily> {
     }
 
     // 2. Path-based common patterns
-    if path.contains("/docs/") || path.contains("/wiki/") || path.contains("/guide/") || path.contains("/tutorial/") {
+    if path.contains("/docs/")
+        || path.contains("/wiki/")
+        || path.contains("/guide/")
+        || path.contains("/tutorial/")
+    {
         return Some(PageFamily::Docs);
     }
-    if path.contains("/p/") || path.contains("/product/") || path.contains("/item/") || path.contains("/shop/") {
+    if path.contains("/p/")
+        || path.contains("/product/")
+        || path.contains("/item/")
+        || path.contains("/shop/")
+    {
         return Some(PageFamily::Product);
     }
-    if path.contains("/blog/") || path.contains("/article/") || path.contains("/news/") || path.contains("/story/") {
+    if path.contains("/blog/")
+        || path.contains("/article/")
+        || path.contains("/news/")
+        || path.contains("/story/")
+    {
         return Some(PageFamily::Article);
     }
     if path.contains("/search") || path.contains("/q/") {
@@ -111,7 +140,10 @@ pub fn detect_family(dom: &tl::VDom, url_hint: PageFamily) -> PageFamily {
     }
 
     // 2. Global DOM hints
-    if dom.query_selector(r#"input[type="search"]"#).map(|mut i| i.next()).is_some()
+    if dom
+        .query_selector(r#"input[type="search"]"#)
+        .map(|mut i| i.next())
+        .is_some()
         && dom.query_selector("form").map(|mut i| i.next()).is_some()
     {
         // Simple search page heuristic: presence of search input and results cards
@@ -119,7 +151,11 @@ pub fn detect_family(dom: &tl::VDom, url_hint: PageFamily) -> PageFamily {
         let mut has_results = false;
         for hint in result_hints {
             let selector = format!(r#"div[class*="{}"]"#, hint);
-            if dom.query_selector(&selector).map(|mut i| i.next()).is_some() {
+            if dom
+                .query_selector(&selector)
+                .map(|mut i| i.next())
+                .is_some()
+            {
                 has_results = true;
                 break;
             }
@@ -199,8 +235,7 @@ pub fn family_score_adjustment(
                 - (stats.short_lines as i64)
         }
         PageFamily::Article => {
-            (stats.paragraphs as i64) * 14
-                + (stats.word_count as i64 / 20)
+            (stats.paragraphs as i64) * 14 + (stats.word_count as i64 / 20)
                 - (stats.link_count as i64) * 2
         }
         PageFamily::Product => {
@@ -212,20 +247,17 @@ pub fn family_score_adjustment(
         }
         PageFamily::Listing => {
             // Reward repeated card structures: many short paragraphs with links
-            (stats.paragraphs as i64) * 10
-                + (stats.link_count as i64) * 2
+            (stats.paragraphs as i64) * 10 + (stats.link_count as i64) * 2
                 - (stats.short_lines as i64)
         }
         PageFamily::Search => {
             // Reward compact result units: title + snippet + link triples
-            (stats.paragraphs as i64) * 8
-                + (stats.link_count as i64) * 3
+            (stats.paragraphs as i64) * 8 + (stats.link_count as i64) * 3
                 - (stats.headings as i64) * 4 // de-rank nav-heavy shells
         }
         PageFamily::Forum => {
             // Reward substantive answer blocks, penalise link-dump replies
-            (stats.paragraphs as i64) * 16
-                + (stats.word_count as i64 / 30)
+            (stats.paragraphs as i64) * 16 + (stats.word_count as i64 / 30)
                 - (stats.link_count as i64) * 3
         }
         PageFamily::Generic => 0,
@@ -269,8 +301,8 @@ pub fn count_spec_markers(text: &str) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::extract::render::{render_tag, cleanup_markdown};
     use crate::extract::candidate::score_text;
+    use crate::extract::render::{cleanup_markdown, render_tag};
 
     #[test]
     fn classifies_docs_candidates() {
@@ -282,14 +314,18 @@ mod tests {
           </div></body></html>"#;
         let dom = tl::parse(html, tl::ParserOptions::default()).unwrap();
         let parser = dom.parser();
-        let tag = dom.query_selector("div")
+        let tag = dom
+            .query_selector("div")
             .and_then(|mut it| it.next())
             .and_then(|h| h.get(parser))
             .and_then(|n| n.as_tag())
             .unwrap();
         let rendered = cleanup_markdown(&render_tag(tag, parser));
         let stats = score_text(&rendered);
-        assert_eq!(classify_candidate_family(tag, &rendered, &stats, PageFamily::Generic), PageFamily::Docs);
+        assert_eq!(
+            classify_candidate_family(tag, &rendered, &stats, PageFamily::Generic),
+            PageFamily::Docs
+        );
     }
 
     #[test]
@@ -303,14 +339,18 @@ mod tests {
           </article></body></html>"#;
         let dom = tl::parse(html, tl::ParserOptions::default()).unwrap();
         let parser = dom.parser();
-        let tag = dom.query_selector("article")
+        let tag = dom
+            .query_selector("article")
             .and_then(|mut it| it.next())
             .and_then(|h| h.get(parser))
             .and_then(|n| n.as_tag())
             .unwrap();
         let rendered = cleanup_markdown(&render_tag(tag, parser));
         let stats = score_text(&rendered);
-        assert_eq!(classify_candidate_family(tag, &rendered, &stats, PageFamily::Generic), PageFamily::Article);
+        assert_eq!(
+            classify_candidate_family(tag, &rendered, &stats, PageFamily::Generic),
+            PageFamily::Article
+        );
     }
 
     #[test]
@@ -326,13 +366,17 @@ mod tests {
           </section></body></html>"#;
         let dom = tl::parse(html, tl::ParserOptions::default()).unwrap();
         let parser = dom.parser();
-        let tag = dom.query_selector("section")
+        let tag = dom
+            .query_selector("section")
             .and_then(|mut it| it.next())
             .and_then(|h| h.get(parser))
             .and_then(|n| n.as_tag())
             .unwrap();
         let rendered = cleanup_markdown(&render_tag(tag, parser));
         let stats = score_text(&rendered);
-        assert_eq!(classify_candidate_family(tag, &rendered, &stats, PageFamily::Generic), PageFamily::Product);
+        assert_eq!(
+            classify_candidate_family(tag, &rendered, &stats, PageFamily::Generic),
+            PageFamily::Product
+        );
     }
 }
