@@ -13,6 +13,8 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+// NOTE: Cargo sets the working directory to the workspace root when running
+// integration tests, so relative paths like "tests/fixtures/apostles/" are stable.
 fn fixture_html(name: &str) -> Vec<u8> {
     let p = format!("tests/fixtures/apostles/{name}");
     std::fs::read(&p).unwrap_or_else(|e| panic!("fixture not found at {p}: {e}"))
