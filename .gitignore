@@ -1,4 +1,4 @@
 /target
 /build
 /*.html
-*.csv
+*.csv.worktrees/
