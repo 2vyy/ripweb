@@ -37,7 +37,14 @@ pub fn render_tag(tag: &tl::HTMLTag, parser: &tl::Parser) -> String {
         "table" => render_table(tag, parser),
         "thead" | "tbody" | "tfoot" | "tr" => render_children_blocks(tag, parser),
         "th" | "td" => render_children_inline(tag, parser),
-        "main" | "article" | "section" | "div" | "body" => render_children_blocks(tag, parser),
+        "main" | "article" | "body" => render_children_blocks(tag, parser),
+        "section" | "div" | "aside" => {
+            let rendered = render_children_blocks(tag, parser);
+            if prune_sidebar(&rendered, tag, parser) {
+                return String::new();
+            }
+            rendered
+        }
         "span" | "small" | "time" | "label" | "summary" | "details" => {
             render_children_inline(tag, parser)
         }
@@ -64,6 +71,66 @@ pub fn cleanup_markdown(text: &str) -> String {
         out.push_str(line);
     }
     out.trim().to_owned()
+}
+
+fn prune_sidebar(rendered: &str, tag: &tl::HTMLTag, parser: &tl::Parser) -> bool {
+    if rendered.len() < 30 {
+        return false;
+    }
+    // Protect blocks containing technical spec tables
+    if let Some(mut tables) = tag.query_selector(parser, "table")
+        && tables.next().is_some()
+    {
+        return false;
+    }
+
+    let mut link_chars = 0;
+    let mut clean_len = 0;
+    let mut in_bracket = false;
+    let mut in_paren = false;
+    let mut prev = '\0';
+
+    for c in rendered.chars() {
+        if c == '[' && prev != '!' {
+            in_bracket = true;
+            clean_len += 1;
+        } else if c == ']' && in_bracket {
+            in_bracket = false;
+            clean_len += 1;
+        } else if c == '(' && prev == ']' {
+            in_paren = true;
+        } else if c == ')' && in_paren {
+            in_paren = false;
+        } else if in_paren {
+            // skip url characters in density calculation
+            continue;
+        } else {
+            clean_len += 1;
+            if in_bracket {
+                link_chars += 1;
+            }
+        }
+        prev = c;
+    }
+
+    let saturation = if clean_len > 0 {
+        link_chars as f64 / clean_len as f64
+    } else {
+        0.0
+    };
+
+    if saturation > 0.4 {
+        let clean = cleanup_markdown(rendered);
+        let stats = crate::extract::candidate::score_text(&clean);
+        let is_sidebar_list = stats.list_items >= 4 && stats.paragraphs <= 2;
+        let is_listing = stats.paragraphs >= 3 && stats.short_lines >= 4;
+
+        if is_listing && !is_sidebar_list {
+            return false;
+        }
+        return true;
+    }
+    false
 }
 
 pub fn extract_body_markdown(dom: &tl::VDom) -> String {

@@ -57,9 +57,13 @@ Some real-world sites place chrome inside generic `div` or `section` wrappers. T
 - slider / carousel
 - sitemap / toolbar
 
-This is especially important on docs sites and travel/media sites with large global navigation shells.
+This is especially important on docs sites and travel/media sites with large global navigation shells. We heavily target Amazon-style e-commerce noise here (`similarities`, `customers-who`).
 
----
+### Block-Level Pruning (Link Saturation)
+
+During DOM-to-Markdown rendering, block elements (`div`, `section`, `aside`) are dynamically evaluated for **link saturation**. If a block's `link_chars / total_chars  > 0.4`, it is dropped as navigational/recommendation boilerplate.
+- **Product Safety**: Technical `<table>` elements within product pages are shielded from density limits to ensure specification preservation.
+- **Listing Safety**: Pages classified as `Listing` are exempted from density reduction to preserve index fidelity.
 
 ## 4. Candidate Selection
 
@@ -118,16 +122,16 @@ The extractor classifies pages into families before applying rendering rules. Fa
 
 | Family | Primary signals | Status |
 |---|---|---|
-| `Docs` | many headings, code fences, internal links, doc/reference hints | active, scoring influence |
+| `Docs` | many headings, code fences, internal links, doc/reference hints | active, scoring influence, sidebar pruning |
 | `Article` | long prose paragraphs, article/story hints, moderate link density | active, scoring influence |
+| `Listing` | repeated result-card structures, high clustered link density | active, scoring influence & pruning exemption |
+| `Product` | price patterns, spec tables, product schema hints | active, scoring influence & carousel blanking |
 | `Generic` | fallback when no stronger family detected | active |
 
 ### Planned families
 
 | Family | Primary signals |
 |---|---|
-| `Listing` | repeated result-card structures, high clustered link density |
-| `Product` | price patterns, spec tables, product schema hints |
 | `Forum` | repeated answer/comment blocks, score/vote markers, author+timestamp clusters |
 | `Utility` | forms, login walls, redirects, error pages, CAPTCHA interstitials |
 
@@ -237,11 +241,9 @@ Borrow the ideas, not necessarily the exact implementation.
 
 The extractor is currently weakest on:
 
-- docs pages with duplicated sidebar trees (though improvement started in v0.4)
-- search/listing pages that should not be rendered like articles
-- product pages where recommendation cards swamp the main content
-- forum/discussion pages where repeated comment blocks need ranking (partially solved in v0.5 for SO/Reddit)
 - pages whose best content root is nested inside wrapper-heavy layout chrome
+- single-page applications utilizing heavy client-side Shadow DOMs (requires headless browser fallback)
+- sparse generic utility pages (e.g. login walls) where standard text heuristics fail to lock onto a central `main` block
 
 ---
 

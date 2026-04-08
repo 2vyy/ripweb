@@ -77,4 +77,4 @@ filetime = "0.2.27"
 
 # Metrics evaluation
 tiktoken-rs = "0.10"
-regex = "1"
+regex = "1.12.3"
