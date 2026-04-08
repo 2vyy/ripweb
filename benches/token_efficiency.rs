@@ -1,7 +1,7 @@
 use criterion::{Criterion, criterion_group, criterion_main};
-use std::hint::black_box;
 use ripweb::extract::Extractor;
 use ripweb::extract::web::WebExtractor;
+use std::hint::black_box;
 use tiktoken_rs::cl100k_base;
 
 // Using a small fake HTML string to benchmark formatting parsing overhead.

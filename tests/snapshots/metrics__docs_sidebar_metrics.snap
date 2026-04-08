@@ -1,0 +1,10 @@
+---
+source: tests/metrics.rs
+expression: metrics
+---
+QualityMetrics {
+    compression_ratio: 0.393,
+    noise_to_signal: 0.773,
+    link_saturation: 0.0,
+    code_to_text: 0.167,
+}
