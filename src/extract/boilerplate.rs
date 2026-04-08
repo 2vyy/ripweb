@@ -4,9 +4,28 @@ pub const NUKE_TAGS: &[&str] = &[
 ];
 
 pub const NEGATIVE_HINTS: &[&str] = &[
-    "nav", "menu", "sidebar", "footer", "header", "cookie", "modal", "popup", "banner", "share",
-    "social", "breadcrumb", "comment", "related", "recommend", "promo", "advert", "ad-",
-    "utility", "toolbar", "newsletter", "subscribe", "sitemap", "carousel", "slider",
+    // Navigation and structure
+    "nav", "menu", "sidebar", "footer", "header", "breadcrumb", "sitemap", "toolbar",
+    // Overlays and interruptions
+    "cookie", "modal", "popup", "banner", "notice", "disclosure", "overlay",
+    // Social and sharing
+    "share", "social",
+    // Supplementary content
+    "related", "recommend", "promo", "sponsor", "ad-", "advert",
+    // Subscription and utility
+    "utility", "newsletter", "subscribe",
+    // Dynamic content containers
+    "carousel", "slider",
+    // Docs-specific noise
+    "toc", "table-of-contents", "on-this-page", "in-this-article",
+    // Blog/news metadata noise
+    "byline", "author-bio", "tags", "tag-list", "pagination", "page-nav",
+    // UI widgets and annotations
+    "widget", "chip", "pill", "annotation", "tooltip",
+    // Comments section
+    "comment",
+    // Copyright / legal
+    "copyright", "legal",
 ];
 
 /// Extract a named attribute value from an HTML tag.

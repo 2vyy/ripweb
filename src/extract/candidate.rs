@@ -65,7 +65,7 @@ pub fn extract_best_candidate(dom: &tl::VDom, family: PageFamily) -> String {
             for handle in hits {
                 let Some(node) = handle.get(parser) else { continue };
                 if let Some(tag) = node.as_tag() {
-                    consider_candidate(&mut best, score_candidate(tag, parser, family));
+                    consider_candidate(&mut best, score_candidate(tag, parser, family, 0));
                 }
             }
         }
@@ -75,7 +75,7 @@ pub fn extract_best_candidate(dom: &tl::VDom, family: PageFamily) -> String {
             for handle in hits.take(MAX_FALLBACK_CANDIDATES_PER_SELECTOR) {
                 let Some(node) = handle.get(parser) else { continue };
                 if let Some(tag) = node.as_tag() {
-                    consider_candidate(&mut best, score_candidate(tag, parser, family));
+                    consider_candidate(&mut best, score_candidate(tag, parser, family, 1));
                 }
             }
         }
@@ -85,14 +85,15 @@ pub fn extract_best_candidate(dom: &tl::VDom, family: PageFamily) -> String {
             for handle in hits.take(MAX_FALLBACK_CANDIDATES_PER_SELECTOR) {
                 let Some(node) = handle.get(parser) else { continue };
                 if let Some(tag) = node.as_tag() {
-                    consider_candidate(&mut best, score_candidate(tag, parser, family));
+                    // hinted divs can be at any depth; assign a moderate baseline depth
+                    consider_candidate(&mut best, score_candidate(tag, parser, family, 2));
                 }
             }
         }
     }
     if let Some(body_handle) = dom.query_selector("body").and_then(|mut hits| hits.next()) {
         if let Some(body_tag) = body_handle.get(parser).and_then(|node| node.as_tag()) {
-            consider_candidate(&mut best, score_candidate(body_tag, parser, family));
+            consider_candidate(&mut best, score_candidate(body_tag, parser, family, 5));
         }
     }
 
@@ -111,6 +112,9 @@ fn score_candidate(
     tag: &tl::HTMLTag,
     parser: &tl::Parser,
     family: PageFamily,
+    // depth: approximate search-depth from document root — penalises wrapper-heavy nesting.
+    // Pass 0 for `<main>`/`<article>` (highest priority), larger values for fallbacks.
+    depth: u32,
 ) -> Option<ScoredCandidate> {
     let name = tag.name().as_utf8_str().to_ascii_lowercase();
     if should_strip_subtree(tag) || NUKE_TAGS.contains(&name.as_str()) {
@@ -144,6 +148,11 @@ fn score_candidate(
     }
     score -= (stats.link_count as i64) * 4;
     score -= (stats.short_lines as i64) * 2;
+
+    // Depth penalty: candidates deeper than the immediate document children
+    // are likely nested inside layout wrappers. Each level past depth 3 costs points.
+    let depth_penalty = (depth.saturating_sub(3) as i64) * 12;
+    score -= depth_penalty;
 
     score += match name.as_str() {
         "article" => {

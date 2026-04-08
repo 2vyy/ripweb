@@ -207,7 +207,25 @@ pub fn family_score_adjustment(
                 + (spec_markers as i64) * 22
                 - (stats.link_count as i64) * 4
         }
-        PageFamily::Listing | PageFamily::Search | PageFamily::Forum | PageFamily::Generic => 0,
+        PageFamily::Listing => {
+            // Reward repeated card structures: many short paragraphs with links
+            (stats.paragraphs as i64) * 10
+                + (stats.link_count as i64) * 2
+                - (stats.short_lines as i64)
+        }
+        PageFamily::Search => {
+            // Reward compact result units: title + snippet + link triples
+            (stats.paragraphs as i64) * 8
+                + (stats.link_count as i64) * 3
+                - (stats.headings as i64) * 4 // de-rank nav-heavy shells
+        }
+        PageFamily::Forum => {
+            // Reward substantive answer blocks, penalise link-dump replies
+            (stats.paragraphs as i64) * 16
+                + (stats.word_count as i64 / 30)
+                - (stats.link_count as i64) * 3
+        }
+        PageFamily::Generic => 0,
     }
 }
 

@@ -129,9 +129,28 @@ fn render_heading(tag: &tl::HTMLTag, parser: &tl::Parser, name: &str) -> String 
 }
 
 fn render_pre(tag: &tl::HTMLTag, parser: &tl::Parser) -> String {
+    // Try to extract language from a child <code class="language-*"> element
+    let lang = tag
+        .children()
+        .top()
+        .iter()
+        .find_map(|handle| handle.get(parser))
+        .and_then(|node| node.as_tag())
+        .filter(|child| child.name().as_utf8_str().eq_ignore_ascii_case("code"))
+        .and_then(|code_tag| super::boilerplate::tag_attribute(code_tag, "class"))
+        .and_then(|cls| {
+            cls.split_whitespace()
+                .find(|c| c.starts_with("language-"))
+                .map(|c| c.trim_start_matches("language-").to_owned())
+        });
+    let lang_str = lang.as_deref().unwrap_or("");
     let code = tag.inner_text(parser).replace('\r', "");
     let trimmed = code.trim_matches('\n');
-    if trimmed.trim().is_empty() { String::new() } else { format!("\n\n```\n{}\n```\n\n", trimmed) }
+    if trimmed.trim().is_empty() {
+        String::new()
+    } else {
+        format!("\n\n```{lang_str}\n{}\n```\n\n", trimmed)
+    }
 }
 
 fn render_inline_code(tag: &tl::HTMLTag, parser: &tl::Parser) -> String {

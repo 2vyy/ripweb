@@ -54,3 +54,55 @@ fn aggressive_mode_keeps_markdown_links_intact() {
     assert!(result.contains("[Fetch API]("), "link label lost: {result}");
     assert!(result.contains("id=42"), "meaningful URL component lost: {result}");
 }
+
+// ── Invariant tests ───────────────────────────────────────────────────────────
+
+/// Output must never be longer (in bytes) than the cleaned HTML input.
+#[test]
+fn output_never_longer_than_input() {
+    let fixtures: &[&[u8]] = &[
+        include_bytes!("fixtures/extract/article_clean.html"),
+        include_bytes!("fixtures/extract/bloated_generic.html"),
+        include_bytes!("fixtures/extract/spa_next_data.html"),
+        include_bytes!("fixtures/extract/docs_sidebar.html"),
+        include_bytes!("fixtures/extract/listing_results.html"),
+        include_bytes!("fixtures/extract/product_detail.html"),
+        include_bytes!("fixtures/extract/forum_thread.html"),
+    ];
+    for (i, html) in fixtures.iter().enumerate() {
+        let result = WebExtractor::extract(html, Some("text/html; charset=utf-8"))
+            .unwrap_or_default();
+        assert!(
+            result.len() <= html.len(),
+            "fixture {i}: output ({}) bytes is longer than input ({}) bytes",
+            result.len(),
+            html.len()
+        );
+    }
+}
+
+/// There must be no unmatched `](` sequences that would indicate a broken link.
+/// A valid Markdown link always has a matching `[...](` pattern.
+#[test]
+fn no_orphaned_link_openers_in_output() {
+    let fixtures: &[&[u8]] = &[
+        include_bytes!("fixtures/extract/article_clean.html"),
+        include_bytes!("fixtures/extract/bloated_generic.html"),
+        include_bytes!("fixtures/extract/docs_sidebar.html"),
+        include_bytes!("fixtures/extract/listing_results.html"),
+        include_bytes!("fixtures/extract/product_detail.html"),
+        include_bytes!("fixtures/extract/forum_thread.html"),
+    ];
+    for (i, html) in fixtures.iter().enumerate() {
+        let result = WebExtractor::extract(html, Some("text/html; charset=utf-8"))
+            .unwrap_or_default();
+        // Count `](` — each must be preceded by a closing `]` which follows an opening `[`
+        // A simple structural check: the count of `[` must be >= count of `](`
+        let opens = result.matches('[').count();
+        let link_pairs = result.matches("](").count();
+        assert!(
+            opens >= link_pairs,
+            "fixture {i}: more `](` ({link_pairs}) than `[` ({opens}) — broken link structure in output:\n{result}"
+        );
+    }
+}

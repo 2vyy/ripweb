@@ -397,3 +397,62 @@ fn product_family_url_hint_prefers_buybox_over_link_grid() {
     );
 }
 
+
+// ── Page-Family Snapshot Tests ────────────────────────────────────────────────
+
+#[test]
+fn snapshot_docs_sidebar_page() {
+    let html = include_bytes!("fixtures/extract/docs_sidebar.html");
+    let result = WebExtractor::extract_with_url(
+        html,
+        Some("text/html; charset=utf-8"),
+        Some("https://docs.example.com/api"),
+    )
+    .unwrap();
+    assert!(!result.contains("On this page"), "TOC clone leaked: {result}");
+    assert!(result.contains("fetch"), "API content missing: {result}");
+    assert!(result.contains("```rust"), "rust fence missing: {result}");
+    insta::assert_snapshot!(result);
+}
+
+#[test]
+fn snapshot_listing_results_page() {
+    let html = include_bytes!("fixtures/extract/listing_results.html");
+    let result = WebExtractor::extract(html, Some("text/html; charset=utf-8")).unwrap();
+    assert!(result.contains("The Async Book"), "first result missing: {result}");
+    assert!(result.contains("Tokio Tutorial"), "second result missing: {result}");
+    assert!(!result.contains("Next page"), "pagination chrome leaked: {result}");
+    insta::assert_snapshot!(result);
+}
+
+#[test]
+fn snapshot_product_detail_page() {
+    let html = include_bytes!("fixtures/extract/product_detail.html");
+    let result = WebExtractor::extract_with_url(
+        html,
+        Some("text/html; charset=utf-8"),
+        Some("https://www.keychron.com/products/q1-pro"),
+    )
+    .unwrap();
+    assert!(result.contains("Keychron Q1 Pro"), "product title missing: {result}");
+    assert!(result.contains("199.00"), "price missing: {result}");
+    assert!(result.contains("Hot-swap"), "spec table missing: {result}");
+    assert!(!result.contains("Customers also viewed"), "recommendation rail leaked: {result}");
+    insta::assert_snapshot!(result);
+}
+
+#[test]
+fn snapshot_forum_thread_page() {
+    let html = include_bytes!("fixtures/extract/forum_thread.html");
+    let result = WebExtractor::extract_with_url(
+        html,
+        Some("text/html; charset=utf-8"),
+        Some("https://stackoverflow.com/questions/12345"),
+    )
+    .unwrap();
+    assert!(result.contains("borrow checker"), "question content missing: {result}");
+    assert!(result.contains("use-after-free"), "accepted answer missing: {result}");
+    assert!(!result.contains("Hot Network Questions"), "sidebar leaked: {result}");
+    assert!(result.contains("```rust"), "rust fence missing: {result}");
+    insta::assert_snapshot!(result);
+}
