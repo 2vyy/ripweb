@@ -5,12 +5,12 @@
 - [x] Task: Document current scoring heuristics and identified weaknesses in `docs/EXTRACTION.md`
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Research and Baseline (Refinement)' (Protocol in workflow.md) 7fae265
 
-## Phase 2: Enhanced Content Selection Heuristics
+## Phase 2: Enhanced Content Selection Heuristics [checkpoint: 2ad01b8]
 - [x] Task: Refine link-to-text ratio scoring in `src/extract/candidate.rs`
 - [x] Task: Implement depth-based penalization for deeply nested boilerplate in `src/extract/candidate.rs` (DEFERRED: API limitations)
 - [x] Task: Add boost for high-density text nodes with semantic markers (e.g., `<article>`, `<main>`)
 - [x] Task: Update existing snapshots in `tests/snapshots/` to reflect improved extraction
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Enhanced Content Selection Heuristics' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Enhanced Content Selection Heuristics' (Protocol in workflow.md) 2ad01b8
 
 ## Phase 3: Page-Family Detection System
 - [ ] Task: Create `src/extract/family.rs` with `PageFamily` enum (Article, Product, Docs, Listing, Search, Forum)
