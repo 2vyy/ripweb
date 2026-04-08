@@ -7,6 +7,9 @@ pub enum PageFamily {
     Docs,
     Article,
     Product,
+    Listing,
+    Search,
+    Forum,
     Generic,
 }
 
@@ -34,14 +37,111 @@ const PRODUCT_HINTS: &[&str] = &[
     "details", "purchase", "cart", "merchant", "offer",
 ];
 
-pub fn host_family_hint(source_url: &str) -> Option<PageFamily> {
-    let host = Url::parse(source_url).ok()?.host_str()?.to_ascii_lowercase();
-    match family_hint_for_host(&host)? {
-        "docs" => Some(PageFamily::Docs),
-        "article" => Some(PageFamily::Article),
-        "product" => Some(PageFamily::Product),
-        _ => Some(PageFamily::Generic),
+pub fn url_family_hint(source_url: &str) -> Option<PageFamily> {
+    let url = Url::parse(source_url).ok()?;
+    let host = url.host_str()?.to_ascii_lowercase();
+    let path = url.path().to_ascii_lowercase();
+
+    // 1. Host-based hints from config
+    if let Some(hint) = family_hint_for_host(&host) {
+        match hint {
+            "docs" => return Some(PageFamily::Docs),
+            "article" => return Some(PageFamily::Article),
+            "product" => return Some(PageFamily::Product),
+            _ => {}
+        }
     }
+
+    // 2. Path-based common patterns
+    if path.contains("/docs/") || path.contains("/wiki/") || path.contains("/guide/") || path.contains("/tutorial/") {
+        return Some(PageFamily::Docs);
+    }
+    if path.contains("/p/") || path.contains("/product/") || path.contains("/item/") || path.contains("/shop/") {
+        return Some(PageFamily::Product);
+    }
+    if path.contains("/blog/") || path.contains("/article/") || path.contains("/news/") || path.contains("/story/") {
+        return Some(PageFamily::Article);
+    }
+    if path.contains("/search") || path.contains("/q/") {
+        return Some(PageFamily::Search);
+    }
+    if path.contains("/forum/") || path.contains("/thread/") || path.contains("/discuss/") {
+        return Some(PageFamily::Forum);
+    }
+
+    None
+}
+
+pub fn detect_family(dom: &tl::VDom, url_hint: PageFamily) -> PageFamily {
+    if url_hint != PageFamily::Generic {
+        return url_hint;
+    }
+
+    let parser = dom.parser();
+
+    // 1. Meta tag hints (OpenGraph, Schema.org)
+    let og_type = extract_meta_property(dom, "og:type");
+    let schema_type = extract_meta_itemtype(dom);
+
+    if let Some(t) = og_type.as_deref() {
+        match t {
+            "article" => return PageFamily::Article,
+            "product" => return PageFamily::Product,
+            "website" | "object" => {}
+            _ => {}
+        }
+    }
+
+    if let Some(t) = schema_type.as_deref() {
+        if t.contains("Article") || t.contains("BlogPosting") || t.contains("NewsArticle") {
+            return PageFamily::Article;
+        }
+        if t.contains("Product") {
+            return PageFamily::Product;
+        }
+        if t.contains("SearchResultsPage") {
+            return PageFamily::Search;
+        }
+        if t.contains("ItemList") {
+            return PageFamily::Listing;
+        }
+    }
+
+    // 2. Global DOM hints
+    if dom.query_selector(r#"input[type="search"]"#).map(|mut i| i.next()).is_some()
+        && dom.query_selector("form").map(|mut i| i.next()).is_some()
+    {
+        // Simple search page heuristic: presence of search input and results cards
+        let result_hints = ["result", "hit", "item", "product", "listing"];
+        let mut has_results = false;
+        for hint in result_hints {
+            let selector = format!(r#"div[class*="{}"]"#, hint);
+            if dom.query_selector(&selector).map(|mut i| i.next()).is_some() {
+                has_results = true;
+                break;
+            }
+        }
+        if has_results {
+            return PageFamily::Search;
+        }
+    }
+
+    PageFamily::Generic
+}
+
+fn extract_meta_property(dom: &tl::VDom, property: &str) -> Option<String> {
+    let selector = format!(r#"meta[property="{}"]"#, property);
+    let mut iter = dom.query_selector(&selector)?;
+    let handle = iter.next()?;
+    let tag = handle.get(dom.parser())?.as_tag()?;
+    tag_attribute(tag, "content")
+}
+
+fn extract_meta_itemtype(dom: &tl::VDom) -> Option<String> {
+    let mut iter = dom.query_selector("[itemtype]")?;
+    let handle = iter.next()?;
+    let tag = handle.get(dom.parser())?.as_tag()?;
+    tag_attribute(tag, "itemtype")
 }
 
 pub fn classify_candidate_family(
@@ -107,7 +207,7 @@ pub fn family_score_adjustment(
                 + (spec_markers as i64) * 22
                 - (stats.link_count as i64) * 4
         }
-        PageFamily::Generic => 0,
+        PageFamily::Listing | PageFamily::Search | PageFamily::Forum | PageFamily::Generic => 0,
     }
 }
 

@@ -13,10 +13,10 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Enhanced Content Selection Heuristics' (Protocol in workflow.md) 2ad01b8
 
 ## Phase 3: Page-Family Detection System
-- [ ] Task: Create `src/extract/family.rs` with `PageFamily` enum (Article, Product, Docs, Listing, Search, Forum)
-- [ ] Task: Implement `detect_family` function using meta tags (OpenGraph, Schema.org) and DOM hints
-- [ ] Task: Implement URL-based family hints (e.g., `/docs/`, `/wiki/`, `/p/`)
-- [ ] Task: Integrate family detection into the extraction pipeline in `src/extract/mod.rs`
+- [x] Task: Create `src/extract/family.rs` with `PageFamily` enum (Article, Product, Docs, Listing, Search, Forum)
+- [x] Task: Implement `detect_family` function using meta tags (OpenGraph, Schema.org) and DOM hints
+- [x] Task: Implement URL-based family hints (e.g., `/docs/`, `/wiki/`, `/p/`)
+- [x] Task: Integrate family detection into the extraction pipeline in `src/extract/mod.rs`
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Page-Family Detection System' (Protocol in workflow.md)
 
 ## Phase 4: Initial Family-Specific Rendering

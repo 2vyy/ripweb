@@ -56,19 +56,16 @@ pub fn score_text(text: &str) -> TextStats {
     stats
 }
 
-pub fn extract_best_candidate(dom: &tl::VDom, source_url: Option<&str>) -> String {
+pub fn extract_best_candidate(dom: &tl::VDom, family: PageFamily) -> String {
     let parser = dom.parser();
     let mut best: Option<ScoredCandidate> = None;
-    let url_family = source_url
-        .and_then(|u| super::family::host_family_hint(u))
-        .unwrap_or(PageFamily::Generic);
 
     for selector in CONTENT_ROOTS {
         if let Some(hits) = dom.query_selector(selector) {
             for handle in hits {
                 let Some(node) = handle.get(parser) else { continue };
                 if let Some(tag) = node.as_tag() {
-                    consider_candidate(&mut best, score_candidate(tag, parser, url_family));
+                    consider_candidate(&mut best, score_candidate(tag, parser, family));
                 }
             }
         }
@@ -78,7 +75,7 @@ pub fn extract_best_candidate(dom: &tl::VDom, source_url: Option<&str>) -> Strin
             for handle in hits.take(MAX_FALLBACK_CANDIDATES_PER_SELECTOR) {
                 let Some(node) = handle.get(parser) else { continue };
                 if let Some(tag) = node.as_tag() {
-                    consider_candidate(&mut best, score_candidate(tag, parser, url_family));
+                    consider_candidate(&mut best, score_candidate(tag, parser, family));
                 }
             }
         }
@@ -88,14 +85,14 @@ pub fn extract_best_candidate(dom: &tl::VDom, source_url: Option<&str>) -> Strin
             for handle in hits.take(MAX_FALLBACK_CANDIDATES_PER_SELECTOR) {
                 let Some(node) = handle.get(parser) else { continue };
                 if let Some(tag) = node.as_tag() {
-                    consider_candidate(&mut best, score_candidate(tag, parser, url_family));
+                    consider_candidate(&mut best, score_candidate(tag, parser, family));
                 }
             }
         }
     }
     if let Some(body_handle) = dom.query_selector("body").and_then(|mut hits| hits.next()) {
         if let Some(body_tag) = body_handle.get(parser).and_then(|node| node.as_tag()) {
-            consider_candidate(&mut best, score_candidate(body_tag, parser, url_family));
+            consider_candidate(&mut best, score_candidate(body_tag, parser, family));
         }
     }
 
@@ -113,7 +110,7 @@ fn consider_candidate(best: &mut Option<ScoredCandidate>, candidate: Option<Scor
 fn score_candidate(
     tag: &tl::HTMLTag,
     parser: &tl::Parser,
-    url_family: PageFamily,
+    family: PageFamily,
 ) -> Option<ScoredCandidate> {
     let name = tag.name().as_utf8_str().to_ascii_lowercase();
     if should_strip_subtree(tag) || NUKE_TAGS.contains(&name.as_str()) {
@@ -126,7 +123,7 @@ fn score_candidate(
     let stats = score_text(&text);
     if stats.word_count == 0 { return None; }
 
-    let family = classify_candidate_family(tag, &text, &stats, url_family);
+    let candidate_family = classify_candidate_family(tag, &text, &stats, family);
     let price_markers = count_price_markers(&text);
     let spec_markers = count_spec_markers(&text);
 
@@ -184,7 +181,7 @@ fn score_candidate(
         if hint_text.contains(hint) { score -= 60; }
     }
 
-    score += family_score_adjustment(family, &stats, price_markers, spec_markers);
+    score += family_score_adjustment(candidate_family, &stats, price_markers, spec_markers);
 
     Some(ScoredCandidate { score, text })
 }

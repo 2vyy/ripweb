@@ -2,6 +2,7 @@ use crate::error::RipwebError;
 use encoding_rs::Encoding;
 use super::Extractor;
 use super::candidate::{extract_best_candidate, word_count};
+use super::family::{detect_family, url_family_hint, PageFamily};
 use super::render::{cleanup_markdown, extract_next_data};
 
 pub struct WebExtractor;
@@ -37,7 +38,13 @@ fn extract_from_str(html: &str, source_url: Option<&str>) -> String {
         Ok(d) => d,
         Err(_) => return String::new(),
     };
-    let text = extract_best_candidate(&dom, source_url);
+
+    let url_hint = source_url
+        .and_then(|u| url_family_hint(u))
+        .unwrap_or(PageFamily::Generic);
+    let family = detect_family(&dom, url_hint);
+
+    let text = extract_best_candidate(&dom, family);
 
     if word_count(&text) < 100
         && let Some(spa) = extract_next_data(&dom).filter(|s| word_count(s) > word_count(&text))
