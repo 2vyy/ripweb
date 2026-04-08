@@ -1,0 +1,33 @@
+---
+source: tests/extract_web.rs
+expression: result
+---
+# API Reference
+
+The following functions are part of the public ripweb API surface. They are stable unless marked experimental.
+
+## fetch(url: &amp;str) -&gt; Result&lt;Bytes&gt;
+
+Fetches a URL using the configured HTTP client with connection pooling and domain politeness.
+
+```rust
+let bytes = ripweb::fetch("https://example.com").await?;
+```
+
+## extract(bytes: &amp;[u8]) -&gt; Result&lt;String&gt;
+
+Extracts structured Markdown from raw HTML bytes. Applies the boilerplate nuke list, candidate scoring, and family-aware rendering.
+
+```rust
+let markdown = ripweb::extract(&amp;bytes)?;
+println!("{}", markdown);
+```
+
+### Parameters
+
+- `bytes` — raw HTML input, must be valid UTF-8 or will be transcoded
+- `content_type` — optional HTTP Content-Type header for charset detection
+
+### Returns
+
+A `Result&lt;String&gt;` where the `String` is a stable Markdown representation of the page content.
