@@ -36,16 +36,16 @@ fn ripweb() -> Command {
     Command::cargo_bin("ripweb").expect("ripweb binary not found — run `cargo build` first")
 }
 
-// ── Verbosity 1: link-only ────────────────────────────────────────────────────
+// ── Compact mode: link with global header and source delimiter ────────────────
 
 #[tokio::test]
-async fn cli_v1_produces_single_link_line() {
+async fn cli_compact_produces_link_with_delimiter() {
     let server = MockServer::start().await;
     serve_html(&server, "/article", fixture_html("ars_technica.html")).await;
 
     let url = format!("{}/article", server.uri());
     let output = ripweb()
-        .args(["--verbosity", "1", &url])
+        .args(["--mode", "compact", &url])
         .output()
         .expect("failed to run ripweb");
 
@@ -57,36 +57,37 @@ async fn cli_v1_produces_single_link_line() {
         "ripweb exited non-zero\nstdout: {stdout}\nstderr: {stderr}"
     );
 
-    let trimmed = stdout.trim();
+    // Global output header must be present
     assert!(
-        trimmed.starts_with("- ["),
-        "v1 output must start with '- [': {trimmed}"
-    );
-    assert_eq!(
-        trimmed.lines().count(),
-        1,
-        "v1 output must be exactly one line: {trimmed}"
+        stdout.contains("# ripweb output"),
+        "output must contain global header: {stdout}"
     );
     assert!(
-        trimmed.contains(&url),
-        "v1 output must contain the source URL: {trimmed}"
+        stdout.contains("Mode: compact"),
+        "output must declare mode: {stdout}"
     );
+    // Source delimiter must be present
     assert!(
-        trimmed.contains("]("),
-        "v1 output must be a valid markdown link: {trimmed}"
+        stdout.contains("# --- [Source:"),
+        "output must contain source delimiter: {stdout}"
+    );
+    // Compact output must contain a markdown link
+    assert!(
+        stdout.contains("- [") && stdout.contains("]("),
+        "compact output must contain a markdown link: {stdout}"
     );
 }
 
-// ── Verbosity 2: snippet with header ─────────────────────────────────────────
+// ── Balanced mode: snippet with global header and source delimiter ────────────
 
 #[tokio::test]
-async fn cli_v2_produces_page_header_and_snippet() {
+async fn cli_balanced_produces_source_delimiter_and_snippet() {
     let server = MockServer::start().await;
     serve_html(&server, "/article", fixture_html("ars_technica.html")).await;
 
     let url = format!("{}/article", server.uri());
     let output = ripweb()
-        .args(["--verbosity", "2", &url])
+        .args(["--mode", "balanced", &url])
         .output()
         .expect("failed to run ripweb");
 
@@ -97,20 +98,27 @@ async fn cli_v2_produces_page_header_and_snippet() {
         output.status.success(),
         "ripweb exited non-zero\nstdout: {stdout}\nstderr: {stderr}"
     );
+    // Global output header
     assert!(
-        stdout.contains("# Page:"),
-        "v2 must contain '# Page:' header: {stdout}"
+        stdout.contains("# ripweb output"),
+        "output must contain global header: {stdout}"
     );
+    // Source delimiter
     assert!(
-        stdout.trim().lines().count() > 1,
-        "v2 must have more than one line: {stdout}"
+        stdout.contains("# --- [Source:"),
+        "balanced must contain source delimiter: {stdout}"
+    );
+    // Must have substantial content (more than just a header)
+    assert!(
+        stdout.trim().lines().count() > 3,
+        "balanced must have more than 3 lines: {stdout}"
     );
 }
 
-// ── Verbosity 3: full content, no truncation marker ──────────────────────────
+// ── Verbose mode: full content, no truncation marker ─────────────────────────
 
 #[tokio::test]
-async fn cli_v3_produces_full_content_without_truncation() {
+async fn cli_verbose_produces_full_content_without_truncation() {
     let server = MockServer::start().await;
     serve_html(
         &server,
@@ -121,7 +129,7 @@ async fn cli_v3_produces_full_content_without_truncation() {
 
     let url = format!("{}/article", server.uri());
     let output = ripweb()
-        .args(["--verbosity", "3", &url])
+        .args(["--mode", "verbose", &url])
         .output()
         .expect("failed to run ripweb");
 
@@ -134,47 +142,47 @@ async fn cli_v3_produces_full_content_without_truncation() {
     );
     assert!(
         !stdout.contains("... (truncated)"),
-        "v3 must not truncate: {stdout}"
+        "verbose must not truncate: {stdout}"
     );
     assert!(
         stdout.len() > 200,
-        "v3 output suspiciously short ({} chars): {stdout}",
+        "verbose output suspiciously short ({} chars): {stdout}",
         stdout.len()
     );
 }
 
-// ── V2 is shorter than V3 on the same content ────────────────────────────────
+// ── Balanced is shorter than verbose on the same content ─────────────────────
 
 // Uses stackoverflow_accepted.html (1.1MB) because it produces well over 2000 chars of
-// extracted Markdown, ensuring v2 truncates while v3 does not, validating that v2 is
-// legitimately shorter due to the 2000-char snippet limit.
+// extracted Markdown, ensuring balanced truncates while verbose does not, validating that
+// balanced is legitimately shorter due to the 2000-char snippet limit.
 #[tokio::test]
-async fn cli_v2_output_is_shorter_than_v3() {
-    let server_v2 = MockServer::start().await;
-    let server_v3 = MockServer::start().await;
+async fn cli_balanced_output_is_shorter_than_verbose() {
+    let server_balanced = MockServer::start().await;
+    let server_verbose = MockServer::start().await;
     let html = fixture_html("stackoverflow_accepted.html");
 
-    serve_html(&server_v2, "/page", html.clone()).await;
-    serve_html(&server_v3, "/page", html).await;
+    serve_html(&server_balanced, "/page", html.clone()).await;
+    serve_html(&server_verbose, "/page", html).await;
 
-    let url_v2 = format!("{}/page", server_v2.uri());
-    let url_v3 = format!("{}/page", server_v3.uri());
+    let url_balanced = format!("{}/page", server_balanced.uri());
+    let url_verbose = format!("{}/page", server_verbose.uri());
 
-    let out_v2 = ripweb()
-        .args(["--verbosity", "2", &url_v2])
+    let out_balanced = ripweb()
+        .args(["--mode", "balanced", &url_balanced])
         .output()
         .unwrap();
-    let out_v3 = ripweb()
-        .args(["--verbosity", "3", &url_v3])
+    let out_verbose = ripweb()
+        .args(["--mode", "verbose", &url_verbose])
         .output()
         .unwrap();
 
-    let len_v2 = out_v2.stdout.len();
-    let len_v3 = out_v3.stdout.len();
+    let len_balanced = out_balanced.stdout.len();
+    let len_verbose = out_verbose.stdout.len();
 
     assert!(
-        len_v2 < len_v3,
-        "v2 ({len_v2} bytes) should be shorter than v3 ({len_v3} bytes)"
+        len_balanced < len_verbose,
+        "balanced ({len_balanced} bytes) should be shorter than verbose ({len_verbose} bytes)"
     );
 }
 
@@ -192,7 +200,7 @@ async fn cli_404_exits_nonzero() {
     let url = format!("{}/does-not-exist", server.uri());
 
     let output = ripweb()
-        .args(["--verbosity", "2", &url])
+        .args(["--mode", "balanced", &url])
         .output()
         .expect("failed to run ripweb");
 
@@ -221,7 +229,7 @@ async fn cli_500_exits_nonzero() {
     let url = format!("{}/broken", server.uri());
 
     let output = ripweb()
-        .args(["--verbosity", "2", &url])
+        .args(["--mode", "balanced", &url])
         .output()
         .expect("failed to run ripweb");
 
@@ -255,7 +263,7 @@ async fn cli_binary_content_type_exits_nonzero() {
     let url = format!("{}/file.pdf", server.uri());
 
     let output = ripweb()
-        .args(["--verbosity", "2", &url])
+        .args(["--mode", "balanced", &url])
         .output()
         .expect("failed to run ripweb");
 
