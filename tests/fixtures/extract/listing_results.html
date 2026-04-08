@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Search Results — Rust async programming</title></head>
+<body>
+
+  <header id="site-header">
+    <nav><a href="/">Home</a></nav>
+  </header>
+
+  <!-- Search bar chrome — should be dropped -->
+  <div class="search-chrome utility" id="search-form-wrapper">
+    <form>
+      <input type="search" value="Rust async programming">
+      <button type="submit">Search</button>
+    </form>
+    <div class="pagination page-nav">
+      <a href="?page=2">Next page</a>
+    </div>
+  </div>
+
+  <!-- Main results listing — should be preserved -->
+  <main id="search-results" class="content listing">
+
+    <div class="result-card">
+      <h2><a href="https://doc.rust-lang.org/async-book/">The Async Book</a></h2>
+      <p>The official guide to asynchronous programming in Rust. Covers Futures, async/await syntax, and the Tokio runtime in depth.</p>
+      <span class="byline">docs.rust-lang.org</span>
+    </div>
+
+    <div class="result-card">
+      <h2><a href="https://tokio.rs/tokio/tutorial">Tokio Tutorial</a></h2>
+      <p>A hands-on tutorial for learning the Tokio async runtime. Build a key-value store server from scratch using async I/O primitives.</p>
+      <span class="byline">tokio.rs</span>
+    </div>
+
+    <div class="result-card">
+      <h2><a href="https://fasterthanli.me/articles/pin-and-suffering">Pin and Suffering</a></h2>
+      <p>An in-depth exploration of the Pin type in Rust, why it exists, and how it interacts with self-referential async state machines.</p>
+      <span class="byline">fasterthanli.me</span>
+    </div>
+
+    <div class="result-card">
+      <h2><a href="https://without.boats/blog/futures-and-segfaults/">Futures and Segfaults</a></h2>
+      <p>A deep dive into why Rust's Future trait was designed the way it was, focusing on the tradeoffs between convenience and safety.</p>
+      <span class="byline">without.boats</span>
+    </div>
+
+  </main>
+
+  <footer id="site-footer">
+    <div class="pagination page-nav"><a href="?page=2">Next</a></div>
+    <p class="copyright">Search by DuckDuckGo</p>
+  </footer>
+
+</body>
+</html>

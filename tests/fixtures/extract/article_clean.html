@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <title>Tokio: The Async Runtime for Rust</title>
+</head>
+<body>
+  <header>Site Header</header>
+  <nav>Nav links here</nav>
+  <article>
+    <h1>Tokio: The Async Runtime for Rust</h1>
+    <p>Tokio is an asynchronous runtime for Rust that provides the building blocks needed
+    for writing networking applications. It gives you an event-driven, non-blocking I/O
+    platform for writing asynchronous TCP and UDP network applications.</p>
+
+    <p>The core of Tokio is a work-stealing scheduler that efficiently drives async tasks
+    across a thread pool. When a task is blocked on I/O, it yields back to the scheduler
+    so other work can proceed. Once the I/O completes, the task is rescheduled.</p>
+
+    <h2>Key Components</h2>
+    <p>Tokio ships with several subsystems: an async I/O layer built on epoll/kqueue/IOCP,
+    a timer wheel for high-resolution timeouts, synchronization primitives like
+    <code>Mutex</code> and <code>Semaphore</code>, and channels for passing data between
+    tasks without sharing memory.</p>
+
+    <aside>
+      Related: See also async-std, smol, and glommio for alternative runtimes.
+    </aside>
+
+    <p>The <code>#[tokio::main]</code> macro expands into a runtime builder call and
+    wraps your async main function, making it straightforward to get started without
+    manual runtime construction.</p>
+  </article>
+  <footer>Footer content here. All rights reserved 2024.</footer>
+</body>
+</html>
