@@ -1,0 +1,3 @@
+url = "synthetic"
+fetched_at = "2026-04-08"
+notes = "Synthetic Amazon-style product page. Amazon blocks curl. Tests Shop/e-commerce family."
