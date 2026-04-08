@@ -21,17 +21,21 @@ Do not attempt to outsmart the user with brittle URL-guessing. Treat input as a 
 
 ### Auto-Discovery
 
-Before parsing any URL, instantly check for `/llms.txt`, `/.well-known/llms.txt`, or `/docs/search.json`. Bypass HTML parsing entirely if found.
+`ripweb` performs a **Probe Sequence** for generic documentation URLs to hunt for native Markdown before scraping HTML:
+1. `<url>.md` or `<url>/index.html.md`
+2. `/llms.txt` or `/.well-known/llms.txt`
 
 ### Source-Specific Routing
 
 | Source | Strategy |
 |---|---|
-| **GitHub** | Detect `GITHUB_TOKEN` in environment. Route to API or raw user content. Target READMEs, file trees, raw code. Avoid HTML GitHub pages. |
-| **Reddit** | Append `.json` to URL. Use browser impersonation to bypass Cloudflare. Prompt for optional API token if rate-limited. |
-| **StackOverflow** | Extract question, accepted answer, upvoted answers, and related questions. Strip "Hot Network Questions" and negative-score replies. |
-| **HackerNews** | Use the JSON-native Algolia HN API. |
-| **Generic Web** | Use DOM parser, apply nuke list, score content roots, apply page-family rules. See [EXTRACTION.md](EXTRACTION.md). |
+| **GitHub** | REST API for Issues/Comments; `raw.githubusercontent.com` for READMEs/Files. Uses `GITHUB_TOKEN` from ENV if available. |
+| **Reddit** | Append `.json` to get the structured thread. |
+| **StackOverflow** | SE API v2.3 to fetch title + answers, ranked by `Accepted` status and `Score`. |
+| **Wikipedia** | REST v1 summary API for clean article extracts. |
+| **ArXiv** | Atom query API for metadata and abstracts. |
+| **HackerNews** | Algolia HN API. |
+| **Generic Web** | DOM parser + nuke list + scoring. Fallback to **Jina.ai** if content is thin. |
 
 ### Charset Handling
 
@@ -106,37 +110,26 @@ ripweb/
 ├── config/
 │   └── ripweb.toml          # Domain-family hints and extraction config
 ├── corpus/                  # Frozen real-world fixtures and bulk reports
-├── docs/                    # This wiki
-├── examples/                # Developer tooling (not part of public CLI)
-├── tests/                   # Integration tests, fixtures, snapshots, expected outputs
+├── docs/                    # Architecture and Design documentation
+├── benches/                 # Performance regression benchmarks
+├── tests/                   # Integration tests, fixtures, snapshots
 └── src/
-    ├── main.rs              # CLI entry point, stdout streaming, signal handling
+    ├── main.rs              # CLI entry point
     ├── cli.rs               # Argument definitions
-    ├── router.rs            # Input routing (query vs URL, llms.txt auto-discovery)
-    ├── config.rs            # Config loading
-    ├── corpus.rs            # Fixture manifest
-    ├── error.rs             # Error types
-    ├── lib.rs               # Library root
-    ├── search/              # Search API wrappers (return URL lists)
-    │   ├── duckduckgo.rs
-    │   ├── hackernews.rs
-    │   ├── reddit.rs
-    │   └── github.rs
-    ├── fetch/               # Network and crawl layer
-    │   ├── client.rs        # HTTP client setup and global concurrency
-    │   ├── crawler.rs       # Crawl loop and visited-set logic
-    │   ├── cache.rs         # XDG filesystem cache
-    │   ├── politeness.rs    # Domain-keyed semaphores
-    │   ├── preflight.rs     # Content-Type and size checks
-    │   ├── normalize.rs     # URL normalization
-    │   ├── llms_txt.rs      # llms.txt auto-discovery
+    ├── router.rs            # Input routing and platform classification
+    ├── run.rs               # Orchestration and dispatch loop
+    ├── search/              # Specialized platform APIs
+    │   ├── arxiv.rs, stackoverflow.rs, wikipedia.rs
+    │   ├── hackernews.rs, reddit.rs, github.rs
+    │   └── duckduckgo.rs
+    ├── fetch/               # Network and probe layer
+    │   ├── client.rs, crawler.rs, cache.rs, politeness.rs
+    │   ├── preflight.rs, normalize.rs, probe.rs, llms_txt.rs
     │   └── error.rs
-    ├── extract/             # Parsers and DOM manipulation
-    │   ├── web.rs           # Generic extractor: nuke list, scoring, SPA fallback
-    │   └── links.rs         # Link extraction helpers
-    └── minify/              # Token killer
-        ├── state_machine.rs # Zero-allocation whitespace collapser
-        └── urls.rs          # Tracking parameter stripper
+    ├── extract/             # HTML Parsers and re-ranking
+    │   ├── web.rs, candidate.rs, postprocess.rs, render.rs
+    │   ├── boilerplate.rs, family.rs, links.rs, jina.rs
+    └── minify/              # Zero-allocation token killer
 ```
 
 ---
@@ -149,12 +142,9 @@ See [CURRENT_PRIORITIES.md](CURRENT_PRIORITIES.md).
 
 When adding new site-specific extractors, follow this sequence:
 
-1. `wikipedia.org`
-2. `arxiv.org`
-3. `youtube.com`
-4. `reddit.com` improvements
-5. `github.com` improvements
-6. `x.com` / `amazon.com`
+1. `youtube.com` (Transcripts/Metadata)
+2. `amazon.com` (Product API/Specs)
+3. `x.com` / `mastodon.social`
 
 This order favors high-signal, stable targets before brittle or fast-changing platforms.
 

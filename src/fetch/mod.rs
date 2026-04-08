@@ -6,5 +6,6 @@ pub mod llms_txt;
 pub mod normalize;
 pub mod politeness;
 pub mod preflight;
+pub mod probe;
 
 pub use client::{FetchError, RetryConfig};

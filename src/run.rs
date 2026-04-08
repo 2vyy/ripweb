@@ -1,23 +1,30 @@
 use std::sync::Arc;
-use std::time::Duration;
 
 use crate::{
     cli::{Cli, OutputMode},
     error::RipwebError,
+    extract::jina::fetch_via_jina,
     fetch::{
         cache::Cache,
         crawler::{format_output, Crawler, CrawledPage, CrawlerConfig},
         llms_txt::fetch_llms_txt,
         politeness::DomainSemaphores,
+        probe::probe_markdown,
         RetryConfig,
     },
     minify::collapse,
     router::{route, PlatformRoute, Route},
     search::{
+        arxiv::{arxiv_api_url, format_arxiv_content, parse_arxiv_atom},
         duckduckgo,
         github,
         hackernews::{hn_api_url, parse_hn_json},
         reddit::{parse_reddit_json, reddit_json_url},
+        stackoverflow::{
+            format_so_content, parse_so_answers, parse_so_question,
+            so_answers_url, so_question_url, SoContent,
+        },
+        wikipedia::{parse_wiki_summary, wiki_summary_url},
     },
 };
 
@@ -98,15 +105,88 @@ async fn handle_platform(
                 .map_err(|e| RipwebError::Network(format!("HN JSON parse: {e}")))?;
             Ok((format_hn(&content), 1))
         }
+        PlatformRoute::Wikipedia { title } => {
+            let api = wiki_summary_url(&title);
+            let body = client
+                .get(api.as_str())
+                .send()
+                .await
+                .map_err(|e| RipwebError::Network(e.to_string()))?
+                .text()
+                .await
+                .map_err(|e| RipwebError::Network(e.to_string()))?;
+            let text = parse_wiki_summary(&body)
+                .map_err(|e| RipwebError::Network(format!("Wikipedia JSON parse: {e}")))?;
+            Ok((text, 1))
+        }
+        PlatformRoute::StackOverflow { question_id } => {
+            // Fetch question title and answers in parallel.
+            let (q_body, a_body) = tokio::try_join!(
+                async {
+                    client
+                        .get(so_question_url(question_id).as_str())
+                        .send()
+                        .await
+                        .map_err(|e| RipwebError::Network(e.to_string()))?
+                        .text()
+                        .await
+                        .map_err(|e| RipwebError::Network(e.to_string()))
+                },
+                async {
+                    client
+                        .get(so_answers_url(question_id).as_str())
+                        .send()
+                        .await
+                        .map_err(|e| RipwebError::Network(e.to_string()))?
+                        .text()
+                        .await
+                        .map_err(|e| RipwebError::Network(e.to_string()))
+                }
+            )?;
+            let title = parse_so_question(&q_body)
+                .map_err(|e| RipwebError::Network(format!("SO question parse: {e}")))?;
+            let answers = parse_so_answers(&a_body)
+                .map_err(|e| RipwebError::Network(format!("SO answers parse: {e}")))?;
+            let content = SoContent { title, answers };
+            Ok((format_so_content(&content), 1))
+        }
+        PlatformRoute::ArXiv { paper_id } => {
+            let api = arxiv_api_url(&paper_id);
+            let body = client
+                .get(api.as_str())
+                .send()
+                .await
+                .map_err(|e| RipwebError::Network(e.to_string()))?
+                .text()
+                .await
+                .map_err(|e| RipwebError::Network(e.to_string()))?;
+            let content = parse_arxiv_atom(&body)
+                .ok_or_else(|| RipwebError::Network("ArXiv returned no results".into()))?;
+            Ok((format_arxiv_content(&content), 1))
+        }
         PlatformRoute::Generic(url) => {
+            // 1. Try .md / index.html.md probe first (fastest, highest quality)
+            if let Some((markdown, _src)) = probe_markdown(client, &url).await {
+                return Ok((markdown, 1));
+            }
+            // 2. Try llms.txt (site-wide LLM index)
             if let Some(llms) = fetch_llms_txt(client, &url).await {
                 return Ok((llms, 1));
             }
-            run_crawler(client, url, cli, retry, sems, cache).await
+            // 3. Crawl and extract HTML
+            let (text, count) = run_crawler(client, url.clone(), cli, retry, sems, cache).await?;
+            // 4. If content is thin, try Jina as a last resort
+            let word_count = text.split_whitespace().count();
+            if word_count < 150 {
+                if let Some(jina_text) = fetch_via_jina(client, &url).await {
+                    return Ok((jina_text, count));
+                }
+            }
+            Ok((text, count))
         }
-        _ => Err(RipwebError::Config("unhandled platform route".into())),
     }
 }
+
 
 async fn handle_query(
     client: &Arc<rquest::Client>,
@@ -165,9 +245,9 @@ async fn run_crawler(
         RetryConfig { max_retries: 2, base_delay: retry.base_delay },
         CrawlerConfig { max_depth: cli.max_depth, max_pages: cli.max_pages },
     );
-    let pages = crawler.crawl(url).await;
-    let count = pages.len();
-    Ok((format_output(&pages), count))
+    let _pages = crawler.crawl(url).await;
+    let count = _pages.len();
+    Ok((format_output(&_pages), count))
 }
 
 fn format_reddit(c: &crate::search::reddit::RedditContent) -> String {

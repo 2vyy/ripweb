@@ -1,4 +1,7 @@
+pub mod arxiv;
 pub mod duckduckgo;
 pub mod github;
 pub mod hackernews;
 pub mod reddit;
+pub mod stackoverflow;
+pub mod wikipedia;

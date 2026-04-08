@@ -102,3 +102,61 @@ fn generic_url_is_passthrough() {
         Route::Url(PlatformRoute::Generic(_))
     ));
 }
+
+// ── New platform routes ───────────────────────────────────────────────────────
+
+#[test]
+fn wikipedia_wiki_url_extracts_title() {
+    let Route::Url(PlatformRoute::Wikipedia { title }) =
+        route("https://en.wikipedia.org/wiki/Rust_(programming_language)")
+    else {
+        panic!("expected Wikipedia route");
+    };
+    assert_eq!(title, "Rust_(programming_language)");
+}
+
+#[test]
+fn wikipedia_non_wiki_url_falls_through_to_generic() {
+    assert!(matches!(
+        route("https://en.wikipedia.org/about"),
+        Route::Url(PlatformRoute::Generic(_))
+    ));
+}
+
+#[test]
+fn stackoverflow_question_url_extracts_id() {
+    let Route::Url(PlatformRoute::StackOverflow { question_id }) =
+        route("https://stackoverflow.com/questions/57430839/why-does-rust-borrow-checker")
+    else {
+        panic!("expected StackOverflow route");
+    };
+    assert_eq!(question_id, 57430839);
+}
+
+#[test]
+fn stackoverflow_non_question_url_falls_through_to_generic() {
+    assert!(matches!(
+        route("https://stackoverflow.com/tags/rust"),
+        Route::Url(PlatformRoute::Generic(_))
+    ));
+}
+
+#[test]
+fn arxiv_abs_url_extracts_paper_id() {
+    let Route::Url(PlatformRoute::ArXiv { paper_id }) =
+        route("https://arxiv.org/abs/1706.03762")
+    else {
+        panic!("expected ArXiv route");
+    };
+    assert_eq!(paper_id, "1706.03762");
+}
+
+#[test]
+fn arxiv_pdf_url_extracts_paper_id() {
+    let Route::Url(PlatformRoute::ArXiv { paper_id }) =
+        route("https://arxiv.org/pdf/1706.03762.pdf")
+    else {
+        panic!("expected ArXiv route");
+    };
+    assert_eq!(paper_id, "1706.03762");
+}

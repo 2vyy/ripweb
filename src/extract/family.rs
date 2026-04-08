@@ -48,6 +48,9 @@ pub fn url_family_hint(source_url: &str) -> Option<PageFamily> {
             "docs" => return Some(PageFamily::Docs),
             "article" => return Some(PageFamily::Article),
             "product" => return Some(PageFamily::Product),
+            "forum" => return Some(PageFamily::Forum),
+            "listing" => return Some(PageFamily::Listing),
+            "search" => return Some(PageFamily::Search),
             _ => {}
         }
     }
@@ -77,7 +80,7 @@ pub fn detect_family(dom: &tl::VDom, url_hint: PageFamily) -> PageFamily {
         return url_hint;
     }
 
-    let parser = dom.parser();
+    let _parser = dom.parser();
 
     // 1. Meta tag hints (OpenGraph, Schema.org)
     let og_type = extract_meta_property(dom, "og:type");

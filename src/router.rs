@@ -6,6 +6,9 @@ pub enum PlatformRoute {
     GitHub { owner: String, repo: String },
     Reddit { url: String },
     HackerNews { item_id: String },
+    Wikipedia { title: String },
+    StackOverflow { question_id: u64 },
+    ArXiv { paper_id: String },
     Generic(Url),
 }
 
@@ -35,6 +38,9 @@ fn classify_url(url: Url) -> PlatformRoute {
             PlatformRoute::Reddit { url: url.into() }
         }
         Some("news.ycombinator.com") => classify_hn(url),
+        Some("en.wikipedia.org") | Some("wikipedia.org") => classify_wikipedia(url),
+        Some("stackoverflow.com") | Some("www.stackoverflow.com") => classify_stackoverflow(url),
+        Some("arxiv.org") => classify_arxiv(url),
         _ => PlatformRoute::Generic(url),
     }
 }
@@ -61,6 +67,33 @@ fn classify_hn(url: Url) -> PlatformRoute {
 
     if let Some(id) = item_id {
         PlatformRoute::HackerNews { item_id: id }
+    } else {
+        PlatformRoute::Generic(url)
+    }
+}
+
+fn classify_wikipedia(url: Url) -> PlatformRoute {
+    use crate::search::wikipedia::wiki_title_from_url;
+    if let Some(title) = wiki_title_from_url(&url) {
+        PlatformRoute::Wikipedia { title }
+    } else {
+        PlatformRoute::Generic(url)
+    }
+}
+
+fn classify_stackoverflow(url: Url) -> PlatformRoute {
+    use crate::search::stackoverflow::so_question_id_from_url;
+    if let Some(id) = so_question_id_from_url(&url) {
+        PlatformRoute::StackOverflow { question_id: id }
+    } else {
+        PlatformRoute::Generic(url)
+    }
+}
+
+fn classify_arxiv(url: Url) -> PlatformRoute {
+    use crate::search::arxiv::arxiv_id_from_url;
+    if let Some(id) = arxiv_id_from_url(&url) {
+        PlatformRoute::ArXiv { paper_id: id }
     } else {
         PlatformRoute::Generic(url)
     }

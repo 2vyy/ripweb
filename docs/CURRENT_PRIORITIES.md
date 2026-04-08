@@ -6,52 +6,51 @@ This page tracks what is done, what is next, and the known weak spots to target.
 
 ## Current State
 
-- output contract is formalized in [OUTPUT_CONTRACT.md](OUTPUT_CONTRACT.md)
-- generic web extraction is Markdown-first with basic candidate scoring
-- curated vs generated evaluation is separated
-- seed URL import, freeze review, frozen fixture workflow, and bulk parser reports are in place
-- first frozen real-world batch and tokenizer audit are complete
-- the main product gap is extraction quality across different page families, not infrastructure
+- Output contract is formalized in [OUTPUT_CONTRACT.md](OUTPUT_CONTRACT.md)
+- Generic web extraction is Markdown-first with family-aware post-processing (Forums, Docs sidebars)
+- High-efficiency platform extractors implemented for **Wikipedia, ArXiv, StackOverflow, GitHub, Reddit, and HackerNews**
+- Automated **Probe Sequence** (`.md` -> `llms.txt`) avoids HTML scraping on compliant sites
+- **Jina.ai Reader** integrated as a high-fidelity universal fallback
+- `proptest` ensures minifier idempotency and length invariants
+- Frozen corpus and bulk evaluation workflow are fully operational
+- Performance benchmarks load local corpus at runtime for CI stability
 
 ---
 
 ## Immediate Next Steps
 
-1. Improve generic content selection heuristics (better density and link scoring)
-2. Add explicit page-family detection on top of the selected candidate
-3. Add `Docs` family rendering rules (stronger sidebar stripping)
-4. Add `Listing` and `Search` family detection and rendering rules
-5. Add `Product` family detection and rendering rules
-6. Add `Forum` / `Discussion` family detection and rendering rules
-7. Revisit aggressive mode only after the Markdown path is stable
+1. Implement **v0.6 Scale & Evaluation**: add structural fidelity metrics and automated golden generation
+2. Expand platform support to **YouTube (metadata/transcripts)** and **Amazon (product specs)**
+3. Improve generic **Listing** family extraction (result-card deduplication)
+4. Audit memory usage during large bulk crawls
 
 ---
 
-## v0.4 Foundation
+## v0.4 Foundation (Complete)
 
 - [x] Formalize output contract
 - [x] Markdown-first extraction as the primary mode
 - [x] Frozen corpus and bulk evaluation workflow
-- [ ] Better generic content selection heuristics
-- [ ] Page-family aware extraction for all planned families
-- [ ] Less manual golden workflow (scripted generation)
-- [ ] End-to-end benchmarks (fetch → extract → render on real corpora)
-- [ ] Metrics for content selection quality, signal retention, structural fidelity
+- [x] Better generic content selection heuristics (depth penalization, link density)
+- [x] Page-family aware extraction (Docs, Listing, Product, Forum)
+- [x] Snapshot-based regression testing (`insta`) and HTML fixtures
+- [x] Family-aware post-processing (Forum ranking, sidebar stripping)
+- [x] End-to-end benchmarks loading local corpus at runtime
+- [x] Invariant validation (output length, link integrity)
+- [x] `proptest` for minifier idempotency
 
 ---
 
-## v0.5 Platform Expansion
+## v0.5 Platform Expansion (Complete)
 
-Add site-specific extractors in this order:
-
-1. `wikipedia.org`
-2. `arxiv.org`
-3. `youtube.com`
-4. `reddit.com` improvements
-5. `github.com` improvements
-6. `x.com` / `amazon.com`
-
-Each new extractor ships with: routing, output contract, fixtures, snapshot/golden coverage, no live-network tests.
+- [x] **Wikipedia**: REST v1 summary API
+- [x] **ArXiv**: Atom export metadata API
+- [x] **StackOverflow**: SE API v2.3 with answer ranking
+- [x] **Reddit**: `.json` API for structured threads
+- [x] **HackerNews**: Algolia API for item retrieval
+- [x] **GitHub**: REST API for Issues/Comments/READMEs
+- [x] **Probe Sequence**: Support for `.md` and `llms.txt`
+- [x] **Jina Fallback**: Integrated `r.jina.ai` proxy
 
 ---
 
@@ -76,7 +75,7 @@ Each new extractor ships with: routing, output contract, fixtures, snapshot/gold
 potential token killer format:
 include all headers
 include all data in first header section
-include all codeblocks (remove empty lines
+include all codeblocks (remove empty lines)
 keywords for each header section of all highlighted / bolded / tick marked (``) words
 dictionary of all hyperlinked text to it's link
 include the first sentence of paragraphs?

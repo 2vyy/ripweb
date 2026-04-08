@@ -45,6 +45,7 @@ fn extract_from_str(html: &str, source_url: Option<&str>) -> String {
     let family = detect_family(&dom, url_hint);
 
     let text = extract_best_candidate(&dom, family);
+    let text = super::postprocess::post_process(family, &dom, text);
 
     if word_count(&text) < 100
         && let Some(spa) = extract_next_data(&dom).filter(|s| word_count(s) > word_count(&text))

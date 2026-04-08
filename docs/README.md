@@ -27,40 +27,20 @@ OUTPUT_CONTRACT.md  >  EXTRACTION.md  >  everything else
 │   └── TESTING.md
 ├── src
 │   ├── cli.rs
-│   ├── config.rs
-│   ├── error.rs
-│   ├── extract
-│   │   ├── boilerplate.rs
-│   │   ├── candidate.rs
-│   │   ├── family.rs
-│   │   ├── links.rs
-│   │   ├── mod.rs
-│   │   ├── render.rs
-│   │   └── web.rs
-│   ├── fetch
-│   │   ├── cache.rs
-│   │   ├── client.rs
-│   │   ├── crawler.rs
-│   │   ├── error.rs
-│   │   ├── llms_txt.rs
-│   │   ├── mod.rs
-│   │   ├── normalize.rs
-│   │   ├── politeness.rs
-│   │   └── preflight.rs
-│   ├── lib.rs
 │   ├── main.rs
-│   ├── minify
-│   │   ├── mod.rs
-│   │   ├── state_machine.rs
-│   │   └── urls.rs
 │   ├── router.rs
 │   ├── run.rs
+│   ├── extract
+│   │   ├── boilerplate.rs, candidate.rs, family.rs, jina.rs
+│   │   ├── links.rs, mod.rs, postprocess.rs, render.rs, web.rs
+│   ├── fetch
+│   │   ├── cache.rs, client.rs, crawler.rs, error.rs, probe.rs
+│   │   ├── llms_txt.rs, mod.rs, normalize.rs, politeness.rs, preflight.rs
+│   ├── minify
+│   │   ├── mod.rs, state_machine.rs, urls.rs
 │   └── search
-│       ├── duckduckgo.rs
-│       ├── github.rs
-│       ├── hackernews.rs
-│       ├── mod.rs
-│       └── reddit.rs
+│       ├── arxiv.rs, duckduckgo.rs, github.rs, hackernews.rs
+│       ├── mod.rs, reddit.rs, stackoverflow.rs, wikipedia.rs
 └── tests
     ├── cli.rs
     ├── crawler.rs

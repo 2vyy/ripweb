@@ -456,3 +456,54 @@ fn snapshot_forum_thread_page() {
     assert!(result.contains("```rust"), "rust fence missing: {result}");
     insta::assert_snapshot!(result);
 }
+
+#[test]
+fn test_forum_ranking_postprocess() {
+    let html = r#"
+        <html>
+        <head><meta property="og:type" content="forum"></head>
+        <body>
+            <main class="forum-thread">
+                <div class="post op">
+                    <h1>How to use Ripweb?</h1>
+                    <div class="content">I am new to this.</div>
+                </div>
+                <div class="post answer" id="a2">
+                    <div class="vote-count">10</div>
+                    <div class="content">Second answer here.</div>
+                </div>
+                <div class="post answer accepted" id="a1">
+                    <div class="vote-count">5</div>
+                    <div class="content">First answer (accepted).</div>
+                </div>
+                <div class="post answer" id="a3">
+                    <div class="vote-count">50</div>
+                    <div class="content">Third answer (high score).</div>
+                </div>
+            </main>
+        </body>
+        </html>
+    "#;
+
+    let result = ripweb::extract::web::WebExtractor::extract_with_url(
+        html.as_bytes(), 
+        Some("text/html"),
+        Some("https://example.com/forum/thread/123")
+    ).unwrap();
+    
+    // Check for "Answers" header added by post-processor
+    assert!(result.contains("## Answers"));
+    
+    // Check order: a1 (accepted) -> a3 (score 50) -> a2 (score 10)
+    let pos_a1 = result.find("First answer (accepted)").unwrap();
+    let pos_a3 = result.find("Third answer (high score)").unwrap();
+    let pos_a2 = result.find("Second answer here").unwrap();
+    
+    assert!(pos_a1 < pos_a3, "Accepted answer should come before high-score answer");
+    assert!(pos_a3 < pos_a2, "High-score answer should come before lower-score answer");
+    
+    // Verify meta headers
+    assert!(result.contains("[Score: 5] (Accepted Answer)"));
+    assert!(result.contains("[Score: 50]"));
+    assert!(result.contains("[Score: 10]"));
+}

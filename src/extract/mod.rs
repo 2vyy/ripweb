@@ -1,7 +1,9 @@
 pub mod boilerplate;
 pub mod candidate;
 pub mod family;
+pub mod jina;
 pub mod links;
+pub mod postprocess;
 pub mod render;
 pub mod web;
 

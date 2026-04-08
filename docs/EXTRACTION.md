@@ -20,14 +20,20 @@ The extractor optimizes for these goals in order:
 
 ## 2. Current Pipeline
 
-The generic extractor lives in `src/extract/web.rs`. It runs in these phases:
+The extraction pipeline is split into a **Router** phase and a **Fetcher** phase to optimize for structured data whenever possible.
 
-1. **Charset decode.** Read the HTTP `Content-Type` charset when present, fall back to `<meta charset>` parsing. Use `encoding_rs` to transcode into UTF-8 before passing bytes to the DOM parser.
-2. **Parse DOM.** `tl` is used for fast HTML parsing.
-3. **Boilerplate stripping.** Hard nuke tags and negative-hint subtrees are removed before candidate scoring.
-4. **Candidate selection.** Plausible content roots are scored using text density, link density, structural signals, and page-family hints.
-5. **Markdown rendering.** The selected subtree is rendered into a stable Markdown intermediate representation.
-6. **SPA fallback.** When visible DOM extraction produces under 100 words, fall back to `__NEXT_DATA__`-style or Vue/Nuxt JSON payloads.
+1. **Routing.** `src/router.rs` classifies the input URL. If it matches a known high-fidelity platform (GitHub, Reddit, Wikipedia, etc.), it is routed to a specialized extractor.
+2. **Probe Sequence (Generic only).** If routed to `Generic`, we attempt to find non-HTML representations:
+    - **Markdown suffix**: Try `url + ".md"` or `url + "/index.html.md"`.
+    - **llms.txt**: Try site-level `llms.txt` or `.well-known/llms.txt` indexes.
+3. **Fetching.**
+    - If a probe hits, return the Markdown immediately.
+    - Otherwise, fetch the HTML or call the platform's REST API.
+4. **Extraction.**
+    - **Platform-Specific**: Parse the REST JSON/XML response into structured Markdown.
+    - **Generic**: Run the HTML pipeline (stripping, candidate scoring, rendering).
+5. **Post-Processing.** Apply family-aware rules (e.g., ranking forum answers, stripping sidebars).
+6. **Fallback.** If generic extraction produces < 150 words, proxy the request through **Jina.ai Reader** as a last resort.
 
 ---
 
@@ -174,26 +180,43 @@ Examples: Stack Overflow, Reddit threads, discussion forums
 
 ---
 
-## 7. Domain Hints vs Site-Specific Parsers
-
-The preferred order of sophistication:
-
-1. family-level heuristics
-2. domain hints (from `config/ripweb.toml`)
-3. site-specific extractors
-
-Domain hints allow known sites to skip generic family detection:
-
-- `docs.rs`, `developer.mozilla.org`, `react.dev` → `docs` family
-- `amazon.com`, `walmart.com`, `target.com` → `product` family
-
-Site-specific parsers are reserved for cases where family-level extraction still fails materially. Do not add a site-specific extractor before exhausting family-level improvements.
-
 See [CONFIGURATION.md](CONFIGURATION.md) for how domain hints are configured.
 
 ---
 
-## 8. Lessons from Comparable Tools
+## 8. Platform-Specific Extractors (v0.5)
+
+To maximize signal-to-noise ratio, `ripweb` uses keyless REST APIs for these high-value platforms:
+
+- **Wikipedia**: Uses the REST v1 summary API (`/api/rest_v1/page/summary/`). Returns clean article extracts with metadata.
+- **StackOverflow**: Uses Stack Exchange API v2.3. Fetches question details and answers in parallel. Answers are ranked by `Accepted` status and then `Score` descending.
+- **ArXiv**: Uses the Atom export query API. Extracts title, authors, published date, and paper abstract.
+- **Reddit**: Appends `.json` to thread URLs to get the structured comment tree (filtering for score > 0).
+- **HackerNews**: Uses the Algolia HN API (`/api/v1/items/`) for consistent comment retrieval.
+- **GitHub**: Uses the `raw.githubusercontent.com` proxy for READMEs and the REST API for public Issues/Comments.
+
+---
+
+## 9. Probe Sequence
+
+Sites built with modern documentation tools (e.g., Mintlify, nbdev) often serve native Markdown. `ripweb` probes for these before attempting to scrape HTML:
+
+1. **Suffix Probe**: `<url>.md`
+2. **Index Probe**: `/llms.txt` or `/.well-known/llms.txt`
+
+The probe only accepts `text/markdown` or `text/plain` responses to avoid false positives from HTML "Not Found" pages.
+
+---
+
+## 10. Universal Fallback (Jina.ai)
+
+When local extraction fails (under 150 words extracted) and no specialized API is available, `ripweb` proxies the request via `https://r.jina.ai/`. This reader handles complex JS-heavy rendering and provides high-quality Markdown for edge cases.
+
+---
+
+---
+
+## 11. Lessons from Comparable Tools
 
 Mozilla Readability, jusText, goose, and Trafilatura show that generic extraction improves when these are combined:
 
@@ -207,37 +230,24 @@ Borrow the ideas, not necessarily the exact implementation.
 
 ---
 
-## 9. Current Weak Spots
+## 12. Current Weak Spots
 
 The extractor is currently weakest on:
 
-- docs pages with duplicated sidebar trees
+- docs pages with duplicated sidebar trees (though improvement started in v0.4)
 - search/listing pages that should not be rendered like articles
 - product pages where recommendation cards swamp the main content
-- forum/discussion pages where repeated comment blocks need ranking and truncation rules
+- forum/discussion pages where repeated comment blocks need ranking (partially solved in v0.5 for SO/Reddit)
 - pages whose best content root is nested inside wrapper-heavy layout chrome
 
 ---
 
-## 10. Implementation Order
-
-1. Strengthen generic candidate scoring with better density and link heuristics
-2. Add `Listing` family detection
-3. Add `Listing` family rendering rules
-4. Add `Product` family detection and rendering rules
-5. Add `Forum` family detection and rendering rules
-6. Strengthen `Docs` classification and docs-specific sidebar stripping
-7. Revisit aggressive mode only after the Markdown path is stable
-
----
-
-## 11. Evaluation
+## 13. Evaluation
 
 Extraction changes must be validated against the frozen corpus before merging. See [TESTING.md](TESTING.md) for the full evaluation workflow.
 
 Key evaluation files:
 
-- `FORMAT.md` → now [OUTPUT_CONTRACT.md](OUTPUT_CONTRACT.md)
 - `src/corpus.rs` — fixture manifest
 - `corpus/reports/bulk_extract_report.md` — latest bulk run
 - `tests/expected/curated/` — human-curated reference outputs
