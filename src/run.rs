@@ -80,7 +80,7 @@ async fn handle_platform(
             repo,
             route_type,
         } => {
-            let text = github::handle_github(client, &owner, &repo, &route_type, cli.verbosity)
+            let text = github::handle_github(client, &owner, &repo, &route_type, cli.mode)
                 .await
                 .map_err(|e| RipwebError::Network(e.to_string()))?;
             Ok((text, 1))
@@ -98,7 +98,7 @@ async fn handle_platform(
                 .map_err(|e| RipwebError::Network(e.to_string()))?;
             let content = parse_reddit_json(&body)
                 .map_err(|e| RipwebError::Network(format!("Reddit JSON parse: {e}")))?;
-            Ok((format_reddit(&content, cli.verbosity), 1))
+            Ok((format_reddit(&content, cli.mode), 1))
         }
         PlatformRoute::HackerNews { item_id } => {
             let api = hn_api_url(&item_id).map_err(|e| RipwebError::Network(e.to_string()))?;
@@ -112,10 +112,10 @@ async fn handle_platform(
                 .map_err(|e| RipwebError::Network(e.to_string()))?;
             let content = parse_hn_json(&body)
                 .map_err(|e| RipwebError::Network(format!("HN JSON parse: {e}")))?;
-            Ok((format_hn(&content, cli.verbosity), 1))
+            Ok((format_hn(&content, cli.mode), 1))
         }
         PlatformRoute::Wikipedia { title } => {
-            if cli.verbosity >= 3 {
+            if cli.mode.density_tier() >= 3 {
                 let full_url = url::Url::parse(&format!("https://en.wikipedia.org/wiki/{}", title))
                     .map_err(|e| RipwebError::Network(format!("Invalid Wikipedia URL: {e}")))?;
                 return handle_generic_url(client, full_url, cli, retry, sems, cache).await;
@@ -129,7 +129,7 @@ async fn handle_platform(
                 .text()
                 .await
                 .map_err(|e| RipwebError::Network(e.to_string()))?;
-            let text = parse_wiki_summary(&body, cli.verbosity)
+            let text = parse_wiki_summary(&body, cli.mode)
                 .map_err(|e| RipwebError::Network(format!("Wikipedia JSON parse: {e}")))?;
             Ok((text, 1))
         }
@@ -170,7 +170,7 @@ async fn handle_platform(
             let answers = parse_so_answers(&a_body)
                 .map_err(|e| RipwebError::Network(format!("SO answers parse: {e}")))?;
             let content = SoContent { title, answers };
-            Ok((format_so_content(&content, cli.verbosity), 1))
+            Ok((format_so_content(&content, cli.mode), 1))
         }
         PlatformRoute::ArXiv { paper_id } => {
             let api = arxiv_api_url(&paper_id).map_err(|e| RipwebError::Network(e.to_string()))?;
@@ -184,7 +184,7 @@ async fn handle_platform(
                 .map_err(|e| RipwebError::Network(e.to_string()))?;
             let content = parse_arxiv_atom(&body)
                 .ok_or_else(|| RipwebError::Network("ArXiv returned no results".into()))?;
-            Ok((format_arxiv_content(&content, cli.verbosity), 1))
+            Ok((format_arxiv_content(&content, cli.mode), 1))
         }
         PlatformRoute::YouTube {
             video_id: _,
@@ -227,7 +227,7 @@ async fn handle_platform(
             .await;
 
             Ok((
-                format_youtube_content(&oembed, transcript.as_deref(), cli.verbosity),
+                format_youtube_content(&oembed, transcript.as_deref(), cli.mode),
                 1,
             ))
         }
@@ -255,7 +255,7 @@ async fn handle_platform(
                 .text()
                 .await
                 .map_err(|e| RipwebError::Network(e.to_string()))?;
-            let text = parse_tiktok_oembed(&body, cli.verbosity)
+            let text = parse_tiktok_oembed(&body, cli.mode)
                 .map_err(|e| RipwebError::Network(format!("TikTok oEmbed parse: {e}")))?;
             Ok((text, 1))
         }
@@ -273,8 +273,7 @@ async fn handle_generic_url(
     sems: DomainSemaphores,
     cache: Option<Arc<Cache>>,
 ) -> Result<(String, usize), RipwebError> {
-    if cli.allow_cloud
-        && cli.verbosity >= 3
+    if (cli.allow_cloud || cli.mode.jina_required())
         && let Some(jina_text) = fetch_via_jina(client, &url).await
     {
         return Ok((
@@ -287,11 +286,11 @@ async fn handle_generic_url(
     }
 
     if let Some((markdown, _src)) = probe_markdown(client, &url).await {
-        return Ok((format_generic(&markdown, &url, cli.verbosity), 1));
+        return Ok((format_generic(&markdown, &url, cli.mode), 1));
     }
 
     if let Some(llms) = fetch_llms_txt(client, &url).await {
-        return Ok((format_generic(&llms, &url, cli.verbosity), 1));
+        return Ok((format_generic(&llms, &url, cli.mode), 1));
     }
 
     let (text, count) = run_crawler(client, url.clone(), cli, retry, sems, cache).await?;
@@ -302,7 +301,7 @@ async fn handle_generic_url(
                 return Ok((
                     format!(
                         "<!-- Processed via Jina.ai Cloud Proxy -->\n\n{}",
-                        format_generic(&jina_text, &url, cli.verbosity)
+                        format_generic(&jina_text, &url, cli.mode)
                     ),
                     1,
                 ));
@@ -317,24 +316,22 @@ async fn handle_generic_url(
         }
     }
 
-    Ok((format_generic(&text, &url, cli.verbosity), count))
+    Ok((format_generic(&text, &url, cli.mode), count))
 }
 
-pub fn format_generic(text: &str, url: &url::Url, verbosity: u8) -> String {
-    match verbosity {
-        1 => {
-            format!("- [Generic Page]({})", url)
-        }
+pub fn format_generic(text: &str, url: &url::Url, mode: crate::mode::Mode) -> String {
+    use crate::minify::strip_tracking;
+    let clean_url = strip_tracking(url.as_str());
+    let delimiter = format!("# --- [Source: {clean_url}] ---\n\n");
+    match mode.density_tier() {
+        1 => format!("{delimiter}- [Generic Page]({clean_url})"),
         2 => {
-            let mut s = format!("# Page: {}\n\n", url);
+            let char_count = text.chars().count();
             let snippet: String = text.chars().take(2000).collect();
-            s.push_str(&snippet);
-            if text.len() > 2000 {
-                s.push_str("... (truncated)");
-            }
-            s
+            let truncated = if char_count > 2000 { "... (truncated)" } else { "" };
+            format!("{delimiter}{snippet}{truncated}")
         }
-        _ => text.to_owned(),
+        _ => format!("{delimiter}{text}"),
     }
 }
 
@@ -358,14 +355,14 @@ async fn handle_query(
         return Err(RipwebError::NoContent);
     }
 
-    let output = format_search_results(&items, instant_opt.as_deref(), cli.verbosity, cli.engine);
+    let output = format_search_results(&items, instant_opt.as_deref(), cli.mode, cli.engine);
     Ok((output, items.len()))
 }
 
 pub fn format_search_results(
     items: &[crate::search::SearchResult],
     instant_opt: Option<&str>,
-    verbosity: u8,
+    mode: crate::mode::Mode,
     engine: crate::cli::SearchEngine,
 ) -> String {
     let mut output = String::new();
@@ -376,7 +373,7 @@ pub fn format_search_results(
     };
 
     for item in items {
-        match verbosity {
+        match mode.density_tier() {
             1 => {
                 output.push_str(&format!("- [{}]({})\n", item.title, item.url));
             }
@@ -430,9 +427,9 @@ async fn run_crawler(
     Ok((format_output(&_pages), count))
 }
 
-pub fn format_reddit(c: &crate::search::reddit::RedditContent, verbosity: u8) -> String {
+pub fn format_reddit(c: &crate::search::reddit::RedditContent, mode: crate::mode::Mode) -> String {
     let mut out = String::new();
-    match verbosity {
+    match mode.density_tier() {
         1 => {
             out.push_str(&format!("- [{}]", c.title));
         }
@@ -461,9 +458,9 @@ pub fn format_reddit(c: &crate::search::reddit::RedditContent, verbosity: u8) ->
     out
 }
 
-pub fn format_hn(c: &crate::search::hackernews::HnContent, verbosity: u8) -> String {
+pub fn format_hn(c: &crate::search::hackernews::HnContent, mode: crate::mode::Mode) -> String {
     let mut out = String::new();
-    match verbosity {
+    match mode.density_tier() {
         1 => {
             out.push_str(&format!("- [{}]", c.title));
         }
