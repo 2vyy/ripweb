@@ -1,4 +1,5 @@
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 use ripweb::extract::Extractor;
 use ripweb::extract::web::WebExtractor;
 use tiktoken_rs::cl100k_base;
