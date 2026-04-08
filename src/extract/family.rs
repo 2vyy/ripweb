@@ -208,6 +208,11 @@ pub fn classify_candidate_family(
     let productish =
         price_markers > 0 && (spec_markers > 0 || stats.list_items >= 2 || stats.headings >= 1);
 
+    let listing_heavy = stats.link_count >= 5
+        && stats.short_lines >= 8
+        && stats.paragraphs >= 3
+        && (stats.link_count as f64) > (stats.word_count as f64 * 0.05);
+
     if DOC_HINTS.iter().any(|hint| hint_text.contains(hint)) || code_heavy {
         return PageFamily::Docs;
     }
@@ -216,6 +221,9 @@ pub fn classify_candidate_family(
     }
     if ARTICLE_HINTS.iter().any(|hint| hint_text.contains(hint)) || prose_heavy {
         return PageFamily::Article;
+    }
+    if listing_heavy {
+        return PageFamily::Listing;
     }
 
     PageFamily::Generic
