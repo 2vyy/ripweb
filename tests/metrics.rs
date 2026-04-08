@@ -2,7 +2,7 @@ use ripweb::extract::{Extractor, web::WebExtractor};
 
 #[allow(dead_code)]
 mod common;
-use common::metrics::{QualityMetrics, calculate_metrics};
+use common::metrics::calculate_metrics;
 
 fn assert_fixture_metrics(fixture_path: &str) {
     let raw_html = std::fs::read(fixture_path).expect("failed to load fixture");
