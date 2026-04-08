@@ -1,67 +1,76 @@
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
 use ripweb::{
-    extract::{web::WebExtractor, Extractor},
+    extract::{Extractor, web::WebExtractor},
     minify::collapse,
 };
 use std::hint::black_box;
 
-/// All HTML/text fixtures in the shared corpus that we benchmark.
-const SAMPLES: &[(&str, &[u8])] = &[
-    (
-        "arxiv_1706.03762",
-        include_bytes!("../corpus/web/arxiv_1706.03762.html"),
-    ),
-    ("aws_ai_ml", include_bytes!("../corpus/web/aws_ai_ml.html")),
-    (
-        "base64_img_bomb",
-        include_bytes!("../corpus/web/base64_img_bomb.txt"),
-    ),
-    (
-        "docs_factory_ai",
-        include_bytes!("../corpus/web/docs_factory_ai.html"),
-    ),
-    (
-        "docs_rs_axum",
-        include_bytes!("../corpus/web/docs_rs_axum.html"),
-    ),
-    (
-        "github_tokio_1879",
-        include_bytes!("../corpus/web/github_tokio_1879.html"),
-    ),
-    (
-        "hn_47326101",
-        include_bytes!("../corpus/web/hn_47326101.html"),
-    ),
-    (
-        "hn_47340079",
-        include_bytes!("../corpus/web/hn_47340079.html"),
-    ),
-    (
-        "legacy_img_bomb",
-        include_bytes!("../corpus/web/legacy_img_bomb.html"),
-    ),
-    (
-        "react_dev_usestate",
-        include_bytes!("../corpus/web/react_dev_usestate.html"),
-    ),
-    (
-        "reddit_wallstreetbets_spacex",
-        include_bytes!("../corpus/web/reddit_wallstreetbets_spacex.html"),
-    ),
-    (
-        "stackoverflow_11227809",
-        include_bytes!("../corpus/web/stackoverflow_11227809.html"),
-    ),
-    (
-        "theverge_gemini",
-        include_bytes!("../corpus/web/theverge_gemini_google_maps.html"),
-    ),
+/// Names of the corpus files that benchmarks will load.
+/// Files are read at runtime from `corpus/web/` so that:
+///   - the directory can be gitignored (live scraped pages, often >1 MB each)
+///   - the bench compiles even when the corpus is absent (missing files are skipped)
+///   - re-seeding the corpus never requires a recompile
+const SAMPLE_NAMES: &[&str] = &[
+    "arxiv_1706.03762.html",
+    "aws_ai_ml.html",
+    "base64_img_bomb.txt",
+    "docs_factory_ai.html",
+    "docs_rs_axum.html",
+    "github_tokio_1879.html",
+    "hn_47326101.html",
+    "hn_47340079.html",
+    "legacy_img_bomb.html",
+    "react_dev_usestate.html",
+    "reddit_wallstreetbets_spacex.html",
+    "stackoverflow_11227809.html",
+    "theverge_gemini_google_maps.html",
 ];
 
-/// Benchmark the extraction step (HTML → plain text).
+/// Discover and load all corpus files that exist on disk.
+/// Returns `(display_name, bytes)` pairs; silently skips missing files.
+fn load_samples() -> Vec<(String, Vec<u8>)> {
+    let corpus_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("corpus/web");
+
+    let mut loaded = Vec::new();
+    for file_name in SAMPLE_NAMES {
+        let path = corpus_dir.join(file_name);
+        match std::fs::read(&path) {
+            Ok(bytes) => {
+                // Strip extension for a cleaner benchmark ID.
+                let name = std::path::Path::new(file_name)
+                    .file_stem()
+                    .map(|s| s.to_string_lossy().into_owned())
+                    .unwrap_or_else(|| file_name.to_string());
+                loaded.push((name, bytes));
+            }
+            Err(_) => {
+                // Corpus file absent — skip without failing.
+                // Run `cargo run -p ripweb --example seed_corpus` to populate.
+                eprintln!("bench: skipping missing corpus file: {}", path.display());
+            }
+        }
+    }
+
+    if loaded.is_empty() {
+        eprintln!(
+            "bench: no corpus files found in {}. \
+             Populate corpus/web/ with real HTML pages to get meaningful results.",
+            corpus_dir.display()
+        );
+    }
+
+    loaded
+}
+
+/// Benchmark the extraction step (HTML → Markdown).
 fn bench_extract(c: &mut Criterion) {
+    let samples = load_samples();
+    if samples.is_empty() {
+        return;
+    }
+
     let mut group = c.benchmark_group("extract");
-    for (name, bytes) in SAMPLES {
+    for (name, bytes) in &samples {
         group.throughput(Throughput::Bytes(bytes.len() as u64));
         group.bench_with_input(BenchmarkId::from_parameter(name), bytes, |b, bytes| {
             b.iter(|| {
@@ -76,14 +85,19 @@ fn bench_extract(c: &mut Criterion) {
     group.finish();
 }
 
-/// Benchmark the minification / collapse step (plain text → minimised).
+/// Benchmark the minification / collapse step (Markdown → minimised).
 fn bench_collapse(c: &mut Criterion) {
+    let samples = load_samples();
+    if samples.is_empty() {
+        return;
+    }
+
     // Pre-extract once so we measure only the collapse step.
-    let extracted: Vec<(&str, String)> = SAMPLES
+    let extracted: Vec<(String, String)> = samples
         .iter()
         .filter_map(|(name, bytes)| {
             let text = WebExtractor::extract(bytes, Some("text/html; charset=utf-8")).ok()?;
-            Some((*name, text))
+            Some((name.clone(), text))
         })
         .collect();
 
@@ -103,8 +117,13 @@ fn bench_collapse(c: &mut Criterion) {
 
 /// Benchmark the full pipeline: extract + collapse.
 fn bench_pipeline(c: &mut Criterion) {
+    let samples = load_samples();
+    if samples.is_empty() {
+        return;
+    }
+
     let mut group = c.benchmark_group("pipeline");
-    for (name, bytes) in SAMPLES {
+    for (name, bytes) in &samples {
         group.throughput(Throughput::Bytes(bytes.len() as u64));
         group.bench_with_input(BenchmarkId::from_parameter(name), bytes, |b, bytes| {
             b.iter(|| {
