@@ -9,9 +9,8 @@ use url::Url;
 ///
 /// Jina Reader converts any page to LLM-friendly Markdown, handles JS rendering,
 /// and strips nav/ad noise. No API key required for basic usage.
-pub fn jina_url(target: &Url) -> Url {
+pub fn jina_url(target: &Url) -> Result<Url, url::ParseError> {
     Url::parse(&format!("https://r.jina.ai/{target}"))
-        .expect("jina URL construction is always valid")
 }
 
 /// Fetch a URL via the Jina.ai Reader proxy, returning clean Markdown.
@@ -19,7 +18,7 @@ pub fn jina_url(target: &Url) -> Url {
 /// Returns `None` on any HTTP error or empty response. Used as a high-quality
 /// fallback when local extraction produces insufficient content.
 pub async fn fetch_via_jina(client: &rquest::Client, target: &Url) -> Option<String> {
-    let proxy_url = jina_url(target);
+    let proxy_url = jina_url(target).ok()?;
     let resp = client
         .get(proxy_url.as_str())
         .header("Accept", "text/markdown,text/plain")
@@ -46,7 +45,7 @@ mod tests {
     fn jina_url_prepends_proxy() {
         let target =
             Url::parse("https://en.wikipedia.org/wiki/Rust_(programming_language)").unwrap();
-        let jina = jina_url(&target);
+        let jina = jina_url(&target).unwrap();
         assert_eq!(
             jina.as_str(),
             "https://r.jina.ai/https://en.wikipedia.org/wiki/Rust_(programming_language)"
@@ -56,7 +55,7 @@ mod tests {
     #[test]
     fn jina_url_works_with_query_params() {
         let target = Url::parse("https://docs.rs/tokio/latest/tokio/struct.Runtime.html").unwrap();
-        let jina = jina_url(&target);
+        let jina = jina_url(&target).unwrap();
         assert!(
             jina.as_str()
                 .starts_with("https://r.jina.ai/https://docs.rs/")

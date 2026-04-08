@@ -3,16 +3,21 @@
 //! Provides the `RipwebError` enum which maps internal failures (Network,
 //! Config, RateLimit) to CLI exit codes and user-facing messages.
 
-use std::fmt;
+
 
 use crate::fetch::FetchError;
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum RipwebError {
+    #[error("configuration error: {0}")]
     Config(String),
+    #[error("network error: {0}")]
     Network(String),
+    #[error("blocked (rate-limited or WAF): exhausted retries")]
     Blocked,
+    #[error("no content: fetched successfully but extracted nothing")]
     NoContent,
+    #[error("input too large: {0} bytes exceeds 5MB limit")]
     InputTooLarge(usize),
 }
 
@@ -27,20 +32,6 @@ impl RipwebError {
         }
     }
 }
-
-impl fmt::Display for RipwebError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Config(s) => write!(f, "configuration error: {s}"),
-            Self::Network(s) => write!(f, "network error: {s}"),
-            Self::Blocked => write!(f, "blocked (rate-limited or WAF): exhausted retries"),
-            Self::NoContent => write!(f, "no content: fetched successfully but extracted nothing"),
-            Self::InputTooLarge(n) => write!(f, "input too large: {} bytes exceeds 5MB limit", n),
-        }
-    }
-}
-
-impl std::error::Error for RipwebError {}
 
 impl From<FetchError> for RipwebError {
     fn from(e: FetchError) -> Self {

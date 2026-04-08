@@ -56,6 +56,8 @@ rand = "0.10.0"
 hex = "0.4.3"
 indicatif = "0.18.4"
 arboard = "3.6.1"
+anyhow = "1.0.102"
+thiserror = "2.0.18"
 
 [dev-dependencies]
 # Snapshot testing for extraction pipeline

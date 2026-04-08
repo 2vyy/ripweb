@@ -31,11 +31,11 @@ pub fn arxiv_id_from_url(url: &Url) -> Option<String> {
 /// Build the ArXiv export API URL for a paper ID.
 ///
 /// The export API returns Atom XML with clean metadata.
-pub fn arxiv_api_url(arxiv_id: &str) -> Url {
+pub fn arxiv_api_url(arxiv_id: &str) -> Result<Url, url::ParseError> {
     Url::parse(&format!(
         "https://export.arxiv.org/api/query?id_list={arxiv_id}&max_results=1"
     ))
-    .expect("statically-constructed URL is always valid")
+    
 }
 
 /// Parse the ArXiv Atom XML response into structured content.

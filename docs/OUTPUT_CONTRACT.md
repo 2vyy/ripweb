@@ -96,7 +96,7 @@ Regardless of verbosity, when prose is emitted, it follows these rules:
 **Drop**:
 - Navigation menus, headers/footers, and cookie banners.
 - Social share widgets and "Recommended for you" rails.
-- **E-commerce Noise**: "Customers also bought", "Similar items", and sponsored carousels.
+- E-commerce Noise: "Customers also bought", "Similar items", and sponsored carousels.
 - Analytics scripts and presentational SVG/iframes.
 
 ---

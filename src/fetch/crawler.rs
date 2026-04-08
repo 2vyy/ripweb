@@ -144,7 +144,7 @@ impl Crawler {
     }
 
     async fn fetch_page(&self, url: &str, host: &str) -> Option<FetchedPage> {
-        let _permit = self.sems.acquire(host).await;
+        let _permit = self.sems.acquire(host).await.ok()?;
 
         let resp = fetch_with_retry(&self.client, url, &self.retry)
             .await

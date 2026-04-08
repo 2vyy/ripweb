@@ -19,11 +19,11 @@ pub fn wiki_title_from_url(url: &Url) -> Option<String> {
 }
 
 /// Build the Wikipedia REST v1 summary endpoint URL for a given title slug.
-pub fn wiki_summary_url(title: &str) -> Url {
+pub fn wiki_summary_url(title: &str) -> Result<Url, url::ParseError> {
     Url::parse(&format!(
         "https://en.wikipedia.org/api/rest_v1/page/summary/{title}"
     ))
-    .expect("statically-constructed URL is always valid")
+    
 }
 
 /// Parse the Wikipedia REST v1 summary JSON response into clean Markdown.
