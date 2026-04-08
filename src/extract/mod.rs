@@ -1,4 +1,5 @@
 pub mod boilerplate;
+pub mod family;
 pub mod links;
 pub mod web;
 
