@@ -66,7 +66,8 @@ fn apostle_snapshot_404_page() {
 #[test]
 fn apostle_snapshot_reddit_thread_v2() {
     let json = include_str!("fixtures/apostles/reddit_thread.json");
-    let content = ripweb::search::reddit::parse_reddit_json(json).expect("reddit JSON parse failed");
+    let content =
+        ripweb::search::reddit::parse_reddit_json(json).expect("reddit JSON parse failed");
     let md = ripweb::run::format_reddit(&content, 2);
     insta::assert_snapshot!(md);
 }
@@ -82,7 +83,8 @@ fn apostle_snapshot_hn_item_v2() {
 #[test]
 fn apostle_snapshot_youtube_oembed() {
     let json = include_str!("fixtures/apostles/youtube_oembed.json");
-    let oembed = ripweb::search::youtube::parse_youtube_oembed(json).expect("YouTube oEmbed parse failed");
+    let oembed =
+        ripweb::search::youtube::parse_youtube_oembed(json).expect("YouTube oEmbed parse failed");
     let md = ripweb::search::youtube::format_youtube_content(&oembed, None, 2);
     insta::assert_snapshot!(md);
 }
@@ -90,7 +92,8 @@ fn apostle_snapshot_youtube_oembed() {
 #[test]
 fn apostle_snapshot_wikipedia_rust_v2() {
     let json = include_str!("fixtures/apostles/wikipedia_rust.json");
-    let md = ripweb::search::wikipedia::parse_wiki_summary(json, 2).expect("Wikipedia JSON parse failed");
+    let md = ripweb::search::wikipedia::parse_wiki_summary(json, 2)
+        .expect("Wikipedia JSON parse failed");
     insta::assert_snapshot!(md);
 }
 
@@ -99,14 +102,26 @@ fn apostle_snapshot_wikipedia_rust_v2() {
 #[test]
 fn apostle_scoreboard() {
     let fixtures: &[(&str, &str)] = &[
-        ("stackoverflow_accepted", "tests/fixtures/apostles/stackoverflow_accepted.html"),
-        ("github_issue",           "tests/fixtures/apostles/github_issue.html"),
-        ("rust_docs_axum",         "tests/fixtures/apostles/rust_docs_axum.html"),
-        ("ars_technica",           "tests/fixtures/apostles/ars_technica.html"),
-        ("blog_ghost",             "tests/fixtures/apostles/blog_ghost.html"),
-        ("amazon_product",         "tests/fixtures/apostles/amazon_product.html"),
-        ("generic_listing",        "tests/fixtures/apostles/generic_listing.html"),
-        ("404_page",               "tests/fixtures/apostles/404_page.html"),
+        (
+            "stackoverflow_accepted",
+            "tests/fixtures/apostles/stackoverflow_accepted.html",
+        ),
+        ("github_issue", "tests/fixtures/apostles/github_issue.html"),
+        (
+            "rust_docs_axum",
+            "tests/fixtures/apostles/rust_docs_axum.html",
+        ),
+        ("ars_technica", "tests/fixtures/apostles/ars_technica.html"),
+        ("blog_ghost", "tests/fixtures/apostles/blog_ghost.html"),
+        (
+            "amazon_product",
+            "tests/fixtures/apostles/amazon_product.html",
+        ),
+        (
+            "generic_listing",
+            "tests/fixtures/apostles/generic_listing.html",
+        ),
+        ("404_page", "tests/fixtures/apostles/404_page.html"),
     ];
 
     println!("\n{:=<76}", "");
