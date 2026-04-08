@@ -69,6 +69,9 @@ criterion = { version = "0.8", features = ["html_reports"] }
 # Mock HTTP servers for network layer tests
 wiremock = "0.6"
 
+# Binary-level CLI integration tests
+assert_cmd = "2"
+
 # Property-based testing for the state machine
 proptest = "1"
 tempfile = "3.27.0"

@@ -1,0 +1,78 @@
+---
+source: tests/apostle_extraction.rs
+expression: md
+---
+[[Image: @Matthias247]](https://github.com/Matthias247)
+## Description
+
+First of all a disclaimer: This issue is not yet a full proposal. This serves more as a collection of things to explore, and to gather feedback on interest.
+
+## What is structured concurrency?
+
+[Structured concurrency](https://en.wikipedia.org/wiki/Structured_concurrency) describes programming paradigm. Concurrent tasks are structured in a fashion where there exist clean task hierarchies, and where the lifetime of all sub-tasks/child-tasks is constrained within the lifetime of their parent task.
+
+The term was likely brought up first by Martin Sustrik in [this blog post](http://250bpm.com/blog:71), and was a guiding idea behind the [libdill](http://libdill.org/) library. [@njsmith](https://github.com/njsmith) utilized the term in [Notes on structured concurrency, or: Go statement considered harmful](https://vorpus.org/blog/notes-on-structured-concurrency-or-go-statement-considered-harmful/), and designed the [python trio](https://github.com/python-trio/trio) library around the paradigm. I highly recommend to read the blog post.
+
+The paradigm has also been adopted by Kotlin coroutines. [@elizarov](https://github.com/elizarov) [gives a talk at HydraConf](https://youtu.be/hW4vjgtPCAY?t=25957) about structured concurrency and the evolution of Kotlins async task model, which I also highly recommend to watch. It provides some hints on things to look out for, and how APIs could look like. [Kotlins documentation around coroutines](https://kotlinlang.org/docs/reference/coroutines/basics.html) is also a good resource.
+
+Go adopted some support for structured concurrency with the [`errgroup`](https://godoc.org/golang.org/x/sync/errgroup) package.
+
+### Benefits of structured concurrency
+
+I again recommend to check out the linked resources, which also elaborate on this 😀
+
+In short: Applying the structured concurrency paradigm can simplify reasoning about concurrent programs and thereby reduce errors. It is helpful at preventing resource leaks, in the same fashion as RAII allows to avoid leaks on a scope level. It might also allow for optimizations.
+
+#### Examples around error reductions and simplifications
+
+Here is one motivating example of how structured concurrency can simplify things:
+
+We are building a building a web application `A`, which is intended to handle at least 1000 transactions per second. Internally each transaction requires a few concurrent interactions, which will involve reaching out to remote services. When one of those transactions fails, we need to perform certain actions. E.g. we need to call another service `B` for a cleanup or rollback. Without structured concurrency, we might have the idea just to do `spawn(cleanup_task())` in order to do this. While this works, it has a side effect: `cleanup` tasks might still be running while the main webservice handler has already terminated. This sounds harmless at first, but can have surprising consequences: We obviously want our services to be resilient against overloads, so we limit the amount of concurrent requests to `2000` via an async `Semaphore`. This works fine for our main service handler. But what happens if lots of transactions are failing? How many `cleanup` tasks can run at the same point of time? The answer is unfortunately, that the number of those is effectively unbounded. Thereby our service can be overloaded through queuing up cleanup tasks - even though we protected ourself against too many concurrent API calls. This can lead to large scale outages in distributed systems.
+
+By making sure all cleanup logic is performed inside the lifetime/scope of the main service handler, we can guarantee that the number of cleanup tasks is also bounded by our `Semaphore`.
+
+Another example could be applying configuration changes at runtime: While our service is running we want to able to update it's configuration. After the configuration change is applied no transaction should still be utilizing the old configuration. What we need to do now is:
+
+- Disable the acceptor in order to drain requests before we can apply the config change
+- Wait for all ongoing transactions to complete
+- Cancel transactions if they take too long to complete.
+- Update the configuration
+- Restart the acceptor
+
+Without having a structured approach for concurrency, this is a lot more of a complicated problem than it sounds. Any old transaction might have spawned a subtask which might still be executing after we have updated the configuration. There is no easy way to check for the higher level code if everything has finished.
+
+#### Potential for optimizations
+
+The application of structured concurrency might allow for optimizations. E.g. we might be able to allow subtasks to borrow data inside the parent tasks scope without the need for additional heap allocations. Since the exact mechanisms are however not yet designed, the exact potential is unknown.
+
+## Core requirements
+
+I think the core requirements for structured concurrency are:
+
+- A parent task will only finish once all child tasks have finished
+- When tasks are spawned, they need to be spawned in the context of a parent task. The parent needs to remember it's child tasks
+- Parent tasks need to have a mechanism to cancel child tasks
+- Errors in child tasks should lead the parent task to return an error as soon as possible, and all sibling tasks to get cancelled. This behavior is equivalent to the behavior of the [try_join!](https://docs.rs/futures/0.3.1/futures/macro.try_join.html) macro in `futures-rs` .
+
+Regarding the last point I am not sure whether automatic error propagation is a required point of structured concurrency and whether it can be achieved on a task level, but it definitely makes things easier.
+
+## Do we actually need to have builtin support for this?
+
+Rusts `async/await` mechanism already provides structured concurrency inside a particular `task`: By utilizing tools like `select!` or `join!` we can run multiple child-tasks which are constrained to the same lifetime - which is the current scope. This is not possible in Go or Kotlin - which require an explicit child-task to be spawned to achieve the behavior. Therefore the benefits might be lower.
+
+[I built an examples in futures-intrusive](https://github.com/Matthias247/futures-intrusive/blob/master/examples/cancellation.rs) around those mechanisms.
+
+However the concurrency inside a certain `task` will not scale very well, due requiring polling of all child `Future` s. Therefore real concurrent `task` s will be required in most applications.
+
+On this level we have a set of tools in our toolbox that allow us to structure our current tasks manually:
+
+- Parent tasks can wait for child tasks to join via the use of `Oneshot` channels or the new `JoinHandle` s
+- Parent tasks can forcefully cancel child tasks by just dropping them
+- Parent tasks can gracefully cancel parents via passing a cancellation signal.
+
+However these tools all require explicit code in order to guarantee correctness. Builtin support for structured concurrency could improve on usability and allow more developers to use good and correct defaults.
+
+And as mentioned earlier, I think builtin support could also allow for new usages, e.g. borrowing inside child tasks or potential scheduler improvements when switching between child tasks and parent tasks.
+
+The following posts are now mainly a braindump around how these requirements could be fulfilled and how they align with existing mechanisms.
+Reactions are currently unavailable

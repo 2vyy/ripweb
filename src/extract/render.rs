@@ -39,10 +39,9 @@ pub fn render_tag(tag: &tl::HTMLTag, parser: &tl::Parser) -> String {
         "th" | "td" => render_children_inline(tag, parser),
         "main" | "article" | "body" => render_children_blocks(tag, parser),
         "section" | "div" | "aside" => {
-            if let Some(rendered) = evaluate_block_saturation(tag, parser) {
-                rendered
-            } else {
-                String::new()
+            let rendered = render_children_blocks(tag, parser);
+            if prune_sidebar(&rendered, tag, parser) {
+                return String::new();
             }
         }
         "span" | "small" | "time" | "label" | "summary" | "details" => {
@@ -73,9 +72,22 @@ pub fn cleanup_markdown(text: &str) -> String {
     out.trim().to_owned()
 }
 
-fn get_text_lengths(node: &tl::Node, parser: &tl::Parser, in_link: bool) -> (usize, usize) {
-    let mut total = 0;
-    let mut link_total = 0;
+fn prune_sidebar(rendered: &str, tag: &tl::HTMLTag, parser: &tl::Parser) -> bool {
+    if rendered.len() < 30 {
+        return false;
+    }
+    // Protect blocks containing technical spec tables
+    if let Some(mut tables) = tag.query_selector(parser, "table")
+        && tables.next().is_some()
+    {
+        return false;
+    }
+
+    let mut link_chars = 0;
+    let mut clean_len = 0;
+    let mut in_bracket = false;
+    let mut in_paren = false;
+    let mut prev = '\0';
 
     match node {
         tl::Node::Raw(b) => {
