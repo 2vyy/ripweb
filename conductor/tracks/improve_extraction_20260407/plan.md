@@ -1,9 +1,9 @@
 # Implementation Plan - Improve generic content selection heuristics and implement initial page-family detection
 
-## Phase 1: Research and Baseline (Refinement)
+## Phase 1: Research and Baseline (Refinement) [checkpoint: 7fae265]
 - [x] Task: Analyze current extraction failures in `tests/fixtures/torture/`
 - [x] Task: Document current scoring heuristics and identified weaknesses in `docs/EXTRACTION.md`
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Research and Baseline (Refinement)' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Research and Baseline (Refinement)' (Protocol in workflow.md) 7fae265
 
 ## Phase 2: Enhanced Content Selection Heuristics
 - [ ] Task: Refine link-to-text ratio scoring in `src/extract/candidate.rs`
