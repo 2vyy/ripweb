@@ -121,10 +121,10 @@ pub fn extract_best_candidate(dom: &tl::VDom, family: PageFamily) -> String {
             }
         }
     }
-    if let Some(body_handle) = dom.query_selector("body").and_then(|mut hits| hits.next()) {
-        if let Some(body_tag) = body_handle.get(parser).and_then(|node| node.as_tag()) {
-            consider_candidate(&mut best, score_candidate(body_tag, parser, family, 5));
-        }
+    if let Some(body_handle) = dom.query_selector("body").and_then(|mut hits| hits.next())
+        && let Some(body_tag) = body_handle.get(parser).and_then(|node| node.as_tag())
+    {
+        consider_candidate(&mut best, score_candidate(body_tag, parser, family, 5));
     }
 
     best.map(|c| c.text)

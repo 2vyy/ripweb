@@ -137,12 +137,12 @@ fn extract_score(tag: &tl::HTMLTag, parser: &tl::Parser) -> i32 {
         "[itemprop='upvoteCount']",
     ];
     for selector in score_selectors {
-        if let Some(mut nodes) = tag.query_selector(parser, selector) {
-            if let Some(handle) = nodes.next() {
-                let text = handle.get(parser).unwrap().inner_text(parser);
-                if let Some(score) = parse_numeric_score(&text) {
-                    return score;
-                }
+        if let Some(mut nodes) = tag.query_selector(parser, selector)
+            && let Some(handle) = nodes.next()
+        {
+            let text = handle.get(parser).unwrap().inner_text(parser);
+            if let Some(score) = parse_numeric_score(&text) {
+                return score;
             }
         }
     }

@@ -1,6 +1,6 @@
 //! HackerNews (Algolia) API
 //!
-//! Integrates with the Algolia-backed HN search API to retrieve 
+//! Integrates with the Algolia-backed HN search API to retrieve
 //! story metadata and the full comment tree in a structured format.
 
 use serde::Deserialize;
@@ -23,7 +23,11 @@ pub fn hn_api_url(item_id: &str) -> Url {
 pub fn parse_hn_json(json: &str) -> Result<HnContent, serde_json::Error> {
     let item: HnItem = serde_json::from_str(json)?;
 
-    let text = item.text.as_deref().map(strip_html).filter(|s| !s.is_empty());
+    let text = item
+        .text
+        .as_deref()
+        .map(strip_html)
+        .filter(|s| !s.is_empty());
 
     let comments = item
         .children
@@ -33,7 +37,11 @@ pub fn parse_hn_json(json: &str) -> Result<HnContent, serde_json::Error> {
         .filter(|s| !s.is_empty())
         .collect();
 
-    Ok(HnContent { title: item.title, text, comments })
+    Ok(HnContent {
+        title: item.title,
+        text,
+        comments,
+    })
 }
 
 /// Strip HTML tags from HN's text field, returning plain text.
@@ -53,7 +61,11 @@ fn strip_html(html: &str) -> String {
                 // Collect text from leaf tags (p, em, etc.)
                 let mut parts = Vec::new();
                 collect_raw_text(tag, parser, &mut parts);
-                if parts.is_empty() { None } else { Some(parts.join(" ")) }
+                if parts.is_empty() {
+                    None
+                } else {
+                    Some(parts.join(" "))
+                }
             }
             _ => None,
         })

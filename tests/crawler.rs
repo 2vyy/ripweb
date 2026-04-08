@@ -2,8 +2,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use ripweb::fetch::{
-    client::{build_client, RetryConfig},
-    crawler::{format_output, Crawler, CrawlerConfig},
+    client::{RetryConfig, build_client},
+    crawler::{Crawler, CrawlerConfig, format_output},
     politeness::DomainSemaphores,
 };
 use url::Url;
@@ -11,7 +11,10 @@ use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 fn fast_retry() -> RetryConfig {
-    RetryConfig { max_retries: 0, base_delay: Duration::from_millis(1) }
+    RetryConfig {
+        max_retries: 0,
+        base_delay: Duration::from_millis(1),
+    }
 }
 
 fn page_html(content: &str, links: &[(&str, &str)]) -> String {
@@ -49,13 +52,14 @@ async fn crawl_respects_max_pages() {
         .mount(&server)
         .await;
 
-    for (p, label) in [("/a", "Content of A"), ("/b", "Content of B"), ("/c", "Content of C")] {
+    for (p, label) in [
+        ("/a", "Content of A"),
+        ("/b", "Content of B"),
+        ("/c", "Content of C"),
+    ] {
         Mock::given(method("GET"))
             .and(path(p))
-            .respond_with(
-                ResponseTemplate::new(200)
-                    .set_body_string(page_html(label, &[])),
-            )
+            .respond_with(ResponseTemplate::new(200).set_body_string(page_html(label, &[])))
             .mount(&server)
             .await;
     }
@@ -67,7 +71,10 @@ async fn crawl_respects_max_pages() {
         DomainSemaphores::new(3),
         None,
         fast_retry(),
-        CrawlerConfig { max_depth: 1, max_pages: 2 },
+        CrawlerConfig {
+            max_depth: 1,
+            max_pages: 2,
+        },
     );
 
     let pages = crawler.crawl(seed).await;
@@ -105,10 +112,10 @@ async fn anchor_variants_are_deduplicated() {
     // /page must only be fetched once.
     Mock::given(method("GET"))
         .and(path("/page"))
-        .respond_with(
-            ResponseTemplate::new(200)
-                .set_body_string(page_html("The actual page content unique text here present", &[])),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_string(page_html(
+            "The actual page content unique text here present",
+            &[],
+        )))
         .expect(1) // wiremock assertion: exactly 1 hit
         .mount(&server)
         .await;
@@ -120,7 +127,10 @@ async fn anchor_variants_are_deduplicated() {
         DomainSemaphores::new(3),
         None,
         fast_retry(),
-        CrawlerConfig { max_depth: 1, max_pages: 10 },
+        CrawlerConfig {
+            max_depth: 1,
+            max_pages: 10,
+        },
     );
 
     let pages = crawler.crawl(seed).await;
@@ -128,7 +138,11 @@ async fn anchor_variants_are_deduplicated() {
     // wiremock verifies the `expect(1)` when the server drops.
     let page_urls: Vec<_> = pages.iter().map(|p| p.url.as_str()).collect();
     let page_count = page_urls.iter().filter(|u| u.contains("/page")).count();
-    assert_eq!(page_count, 1, "/page fetched more than once: {:?}", page_urls);
+    assert_eq!(
+        page_count, 1,
+        "/page fetched more than once: {:?}",
+        page_urls
+    );
 }
 
 // ── LLM delimiter ─────────────────────────────────────────────────────────────
@@ -138,8 +152,14 @@ fn format_output_injects_source_delimiters() {
     use ripweb::fetch::crawler::CrawledPage;
 
     let pages = vec![
-        CrawledPage { url: "https://example.com/".to_owned(), content: "First page.".to_owned() },
-        CrawledPage { url: "https://example.com/two".to_owned(), content: "Second page.".to_owned() },
+        CrawledPage {
+            url: "https://example.com/".to_owned(),
+            content: "First page.".to_owned(),
+        },
+        CrawledPage {
+            url: "https://example.com/two".to_owned(),
+            content: "Second page.".to_owned(),
+        },
     ];
     let out = format_output(&pages);
     assert!(out.contains("# --- [Source: https://example.com/] ---"));
@@ -147,7 +167,9 @@ fn format_output_injects_source_delimiters() {
     assert!(out.contains("First page."));
     assert!(out.contains("Second page."));
     // Delimiter must appear before the content.
-    let delim_pos = out.find("# --- [Source: https://example.com/] ---").unwrap();
+    let delim_pos = out
+        .find("# --- [Source: https://example.com/] ---")
+        .unwrap();
     let content_pos = out.find("First page.").unwrap();
     assert!(delim_pos < content_pos, "delimiter must precede content");
 }

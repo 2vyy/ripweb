@@ -1,6 +1,6 @@
 //! Marginalia Search (Small Web)
 //!
-//! Interacts with the Marginalia search engine API which targets the 
+//! Interacts with the Marginalia search engine API which targets the
 //! "small web" (independent logs, non-commercial sites).
 
 use serde::Deserialize;
@@ -34,11 +34,15 @@ pub fn build_marginalia_url(query: &str) -> String {
 
 pub fn parse_marginalia_json(json: &str) -> Result<Vec<super::SearchResult>, serde_json::Error> {
     let response: MarginaliaResponse = serde_json::from_str(json)?;
-    Ok(response.results.into_iter().map(|r| super::SearchResult {
-        url: r.url,
-        title: r.title,
-        snippet: r.description,
-    }).collect())
+    Ok(response
+        .results
+        .into_iter()
+        .map(|r| super::SearchResult {
+            url: r.url,
+            title: r.title,
+            snippet: r.description,
+        })
+        .collect())
 }
 
 /// Fetch the top `limit` result URLs for `query` from Marginalia.
@@ -92,11 +96,14 @@ mod tests {
         }"#;
         let res = parse_marginalia_json(json).unwrap();
         let urls: Vec<String> = res.into_iter().map(|s| s.url).collect();
-        assert_eq!(urls, vec![
-            "https://blog.example.com/rust",
-            "https://old-docs.example.com/",
-            "https://personal-site.example.com/post",
-        ]);
+        assert_eq!(
+            urls,
+            vec![
+                "https://blog.example.com/rust",
+                "https://old-docs.example.com/",
+                "https://personal-site.example.com/post",
+            ]
+        );
     }
 
     #[test]

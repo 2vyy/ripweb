@@ -176,7 +176,7 @@ async fn handle_platform(
                 .map_err(|e| RipwebError::Network(e.to_string()))?;
             let content = parse_arxiv_atom(&body)
                 .ok_or_else(|| RipwebError::Network("ArXiv returned no results".into()))?;
-            Ok((format_arxiv_content(&content), 1))
+            Ok((format_arxiv_content(&content, cli.verbosity), 1))
         }
         PlatformRoute::YouTube {
             video_id: _,
@@ -265,10 +265,10 @@ async fn handle_generic_url(
     sems: DomainSemaphores,
     cache: Option<Arc<Cache>>,
 ) -> Result<(String, usize), RipwebError> {
-    if cli.verbosity >= 3 {
-        if let Some(jina_text) = fetch_via_jina(client, &url).await {
-            return Ok((jina_text, 1));
-        }
+    if cli.verbosity >= 3
+        && let Some(jina_text) = fetch_via_jina(client, &url).await
+    {
+        return Ok((jina_text, 1));
     }
 
     if let Some((markdown, _src)) = probe_markdown(client, &url).await {
@@ -283,7 +283,7 @@ async fn handle_generic_url(
     Ok((format_generic(&text, &url, cli.verbosity), count))
 }
 
-fn format_generic(text: &str, url: &url::Url, verbosity: u8) -> String {
+pub fn format_generic(text: &str, url: &url::Url, verbosity: u8) -> String {
     match verbosity {
         1 => {
             format!("- [Generic Page]({})", url)
@@ -297,7 +297,7 @@ fn format_generic(text: &str, url: &url::Url, verbosity: u8) -> String {
             }
             s
         }
-        3 | _ => text.to_owned(),
+        _ => text.to_owned(),
     }
 }
 
@@ -315,21 +315,31 @@ async fn handle_query(
         search_query(client, query, cli.engine, &cli.searxng_url, cli.max_pages),
     );
 
-    let items = urls_result.map_err(|e| RipwebError::Network(e))?;
+    let items = urls_result.map_err(RipwebError::Network)?;
 
     if items.is_empty() {
         return Err(RipwebError::NoContent);
     }
 
+    let output = format_search_results(&items, instant_opt.as_deref(), cli.verbosity, cli.engine);
+    Ok((output, items.len()))
+}
+
+pub fn format_search_results(
+    items: &[crate::search::SearchResult],
+    instant_opt: Option<&str>,
+    verbosity: u8,
+    engine: crate::cli::SearchEngine,
+) -> String {
     let mut output = String::new();
-    let engine_name = match cli.engine {
+    let engine_name = match engine {
         crate::cli::SearchEngine::Ddg => "DuckDuckGo",
         crate::cli::SearchEngine::Searxng => "SearXNG",
         crate::cli::SearchEngine::Marginalia => "Marginalia",
     };
 
-    for item in &items {
-        match cli.verbosity {
+    for item in items {
+        match verbosity {
             1 => {
                 output.push_str(&format!("- [{}]({})\n", item.title, item.url));
             }
@@ -340,9 +350,8 @@ async fn handle_query(
                     output.push_str(&format!("  > {}\n", cleaned));
                 }
             }
-            3 | _ => {
+            _ => {
                 output.push_str(&format!("### [{}]({})\n", item.title, item.url));
-                // Date is not easily available from all engines, so omit it
                 output.push_str(&format!("**Source:** {}\n", engine_name));
                 if let Some(snip) = &item.snippet {
                     output.push_str(&format!("{}\n", snip));
@@ -352,12 +361,10 @@ async fn handle_query(
         }
     }
 
-    // Prepend a DDG Instant Answer summary if we got one.
     if let Some(instant) = instant_opt {
         output = format!("> {instant}\n\n---\n\n{output}");
     }
-
-    Ok((output.trim().to_owned(), items.len()))
+    output.trim().to_owned()
 }
 
 async fn run_crawler(
@@ -386,7 +393,7 @@ async fn run_crawler(
     Ok((format_output(&_pages), count))
 }
 
-fn format_reddit(c: &crate::search::reddit::RedditContent, verbosity: u8) -> String {
+pub fn format_reddit(c: &crate::search::reddit::RedditContent, verbosity: u8) -> String {
     let mut out = String::new();
     match verbosity {
         1 => {
@@ -406,7 +413,7 @@ fn format_reddit(c: &crate::search::reddit::RedditContent, verbosity: u8) -> Str
                 );
             }
         }
-        3 | _ => {
+        _ => {
             out.push_str(&format!("# {}\n\n{}", c.title, c.selftext));
             if !c.comments.is_empty() {
                 out.push_str("\n\n## Comments\n\n");
@@ -417,7 +424,7 @@ fn format_reddit(c: &crate::search::reddit::RedditContent, verbosity: u8) -> Str
     out
 }
 
-fn format_hn(c: &crate::search::hackernews::HnContent, verbosity: u8) -> String {
+pub fn format_hn(c: &crate::search::hackernews::HnContent, verbosity: u8) -> String {
     let mut out = String::new();
     match verbosity {
         1 => {
@@ -440,7 +447,7 @@ fn format_hn(c: &crate::search::hackernews::HnContent, verbosity: u8) -> String 
                 );
             }
         }
-        3 | _ => {
+        _ => {
             out.push_str(&format!("# {}", c.title));
             if let Some(text) = &c.text {
                 out.push_str(&format!("\n\n{text}"));

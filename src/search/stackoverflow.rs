@@ -1,6 +1,6 @@
 //! StackExchange (StackOverflow) API
 //!
-//! Fetches question details and answers from the SE API v2.3. 
+//! Fetches question details and answers from the SE API v2.3.
 //! Sorts answers to prioritize "Accepted" and "Highly Voted" content.
 
 use serde::Deserialize;
@@ -42,9 +42,7 @@ pub fn so_question_url(question_id: u64) -> Url {
 /// Extract the SO question ID from a URL like
 /// `https://stackoverflow.com/questions/12345/some-slug`.
 pub fn so_question_id_from_url(url: &Url) -> Option<u64> {
-    let mut segs = url
-        .path_segments()?
-        .filter(|s| !s.is_empty());
+    let mut segs = url.path_segments()?.filter(|s| !s.is_empty());
     // Path: /questions/<id>[/<slug>]
     if segs.next()? != "questions" {
         return None;
@@ -55,11 +53,19 @@ pub fn so_question_id_from_url(url: &Url) -> Option<u64> {
 /// Parse the SE API JSON for questions (to extract the title).
 pub fn parse_so_question(json: &str) -> Result<String, serde_json::Error> {
     #[derive(Deserialize)]
-    struct Wrapper { items: Vec<Question> }
+    struct Wrapper {
+        items: Vec<Question>,
+    }
     #[derive(Deserialize)]
-    struct Question { title: String }
+    struct Question {
+        title: String,
+    }
     let w: Wrapper = serde_json::from_str(json)?;
-    Ok(w.items.into_iter().next().map(|q| q.title).unwrap_or_default())
+    Ok(w.items
+        .into_iter()
+        .next()
+        .map(|q| q.title)
+        .unwrap_or_default())
 }
 
 /// Parse the SE API JSON for answers into structured `SoAnswer` objects.
@@ -68,7 +74,9 @@ pub fn parse_so_question(json: &str) -> Result<String, serde_json::Error> {
 /// The SE API already sorts by votes when `sort=votes` is passed.
 pub fn parse_so_answers(json: &str) -> Result<Vec<SoAnswer>, serde_json::Error> {
     #[derive(Deserialize)]
-    struct Wrapper { items: Vec<Item> }
+    struct Wrapper {
+        items: Vec<Item>,
+    }
     #[derive(Deserialize)]
     struct Item {
         body: String,
@@ -77,15 +85,20 @@ pub fn parse_so_answers(json: &str) -> Result<Vec<SoAnswer>, serde_json::Error> 
     }
 
     let w: Wrapper = serde_json::from_str(json)?;
-    let mut answers: Vec<SoAnswer> = w.items.into_iter().map(|item| SoAnswer {
-        body_markdown: strip_html_to_markdown(&item.body),
-        score: item.score,
-        is_accepted: item.is_accepted,
-    }).collect();
+    let mut answers: Vec<SoAnswer> = w
+        .items
+        .into_iter()
+        .map(|item| SoAnswer {
+            body_markdown: strip_html_to_markdown(&item.body),
+            score: item.score,
+            is_accepted: item.is_accepted,
+        })
+        .collect();
 
     // Ensure accepted answer is always first, regardless of API ordering
     answers.sort_by(|a, b| {
-        b.is_accepted.cmp(&a.is_accepted)
+        b.is_accepted
+            .cmp(&a.is_accepted)
             .then_with(|| b.score.cmp(&a.score))
     });
 
@@ -136,7 +149,9 @@ fn render_node_to_md(
     out: &mut String,
 ) {
     for handle in iter {
-        let Some(node) = handle.get(parser) else { continue };
+        let Some(node) = handle.get(parser) else {
+            continue;
+        };
         match node {
             tl::Node::Raw(b) => out.push_str(&b.as_utf8_str()),
             tl::Node::Tag(tag) => {
@@ -167,7 +182,9 @@ fn render_node_to_md(
                         out.push('_');
                     }
                     "a" => {
-                        let href = tag.attributes().get("href")
+                        let href = tag
+                            .attributes()
+                            .get("href")
                             .flatten()
                             .map(|v| v.as_utf8_str().to_string())
                             .unwrap_or_default();

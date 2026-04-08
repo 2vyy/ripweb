@@ -1,6 +1,6 @@
 //! DuckDuckGo Instant Answer API
 //!
-//! Interacts with the DDG Zero-Click Info API to retrieve "Instant Answer" 
+//! Interacts with the DDG Zero-Click Info API to retrieve "Instant Answer"
 //! facts, definitions, and high-level summaries for a given query.
 
 use serde::Deserialize;
@@ -70,19 +70,9 @@ pub fn parse_ddg_instant(json: &str) -> Result<InstantAnswer, serde_json::Error>
 }
 
 /// Fetch and parse a DDG instant answer. Returns `None` if nothing useful found.
-pub async fn fetch_instant(
-    client: &rquest::Client,
-    query: &str,
-) -> Option<String> {
+pub async fn fetch_instant(client: &rquest::Client, query: &str) -> Option<String> {
     let url = ddg_instant_url(query);
-    let body = client
-        .get(&url)
-        .send()
-        .await
-        .ok()?
-        .text()
-        .await
-        .ok()?;
+    let body = client.get(&url).send().await.ok()?.text().await.ok()?;
 
     let answer = parse_ddg_instant(&body).ok()?;
     if answer.has_content() {

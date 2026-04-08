@@ -1,7 +1,7 @@
 //! DuckDuckGo HTML Search
 //!
-//! Scrapes the non-JS `html.duckduckgo.com` endpoint to retrieve 
-//! Search Engine Result Page (SERP) data including titles, links, 
+//! Scrapes the non-JS `html.duckduckgo.com` endpoint to retrieve
+//! Search Engine Result Page (SERP) data including titles, links,
 //! and snippets.
 
 use url::Url;
@@ -24,8 +24,8 @@ impl std::fmt::Display for DdgError {
 
 /// Build the DDG HTML search endpoint URL for `query`.
 pub fn ddg_search_url(query: &str) -> Url {
-    let mut url = Url::parse("https://html.duckduckgo.com/html/")
-        .expect("base URL is always valid");
+    let mut url =
+        Url::parse("https://html.duckduckgo.com/html/").expect("base URL is always valid");
     url.query_pairs_mut().append_pair("q", query);
     url
 }
@@ -52,9 +52,13 @@ pub fn parse_ddg_html(html: &str, limit: usize) -> Vec<super::SearchResult> {
             break;
         }
 
-        let Some(node) = handle.get(parser) else { continue };
+        let Some(node) = handle.get(parser) else {
+            continue;
+        };
         let Some(tag) = node.as_tag() else { continue };
-        let Some(href_val) = tag.attributes().get("href").flatten() else { continue };
+        let Some(href_val) = tag.attributes().get("href").flatten() else {
+            continue;
+        };
 
         let href = href_val.as_utf8_str();
         let title = tag.inner_text(parser).into_owned();

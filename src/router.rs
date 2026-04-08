@@ -95,17 +95,17 @@ fn classify_github(url: Url) -> PlatformRoute {
         .filter(|s| !s.is_empty());
     if let (Some(owner), Some(repo)) = (segments.next(), segments.next()) {
         let mut route_type = GitHubRouteType::Readme;
-        if let Some(next) = segments.next() {
-            if next == "issues" || next == "pulls" {
-                if let Some(id_str) = segments.next() {
-                    if let Ok(id) = id_str.parse::<u64>() {
-                        route_type = GitHubRouteType::Issue(id);
-                    } else {
-                        route_type = GitHubRouteType::Issues;
-                    }
+        if let Some(next) = segments.next()
+            && (next == "issues" || next == "pulls")
+        {
+            if let Some(id_str) = segments.next() {
+                if let Ok(id) = id_str.parse::<u64>() {
+                    route_type = GitHubRouteType::Issue(id);
                 } else {
                     route_type = GitHubRouteType::Issues;
                 }
+            } else {
+                route_type = GitHubRouteType::Issues;
             }
         }
         PlatformRoute::GitHub {

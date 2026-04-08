@@ -1,6 +1,6 @@
 //! SearXNG Metasearch Engine
 //!
-//! Integrates with self-hosted or public SearXNG instances using 
+//! Integrates with self-hosted or public SearXNG instances using
 //! their JSON API to retrieve aggregated search results.
 
 use serde::Deserialize;
@@ -23,11 +23,15 @@ struct SearxResponse {
 /// Parse a SearXNG JSON response body into a list of result URLs.
 pub fn parse_searxng_json(json: &str) -> Result<Vec<super::SearchResult>, serde_json::Error> {
     let response: SearxResponse = serde_json::from_str(json)?;
-    Ok(response.results.into_iter().map(|r| super::SearchResult {
-        url: r.url,
-        title: r.title,
-        snippet: r.content,
-    }).collect())
+    Ok(response
+        .results
+        .into_iter()
+        .map(|r| super::SearchResult {
+            url: r.url,
+            title: r.title,
+            snippet: r.content,
+        })
+        .collect())
 }
 
 /// Build a SearXNG search URL for a given instance base URL and query.
@@ -92,7 +96,14 @@ mod tests {
         }"#;
         let res = parse_searxng_json(json).unwrap();
         let urls: Vec<String> = res.into_iter().map(|s| s.url).collect();
-        assert_eq!(urls, vec!["https://example.com/a", "https://example.com/b", "https://example.com/c"]);
+        assert_eq!(
+            urls,
+            vec![
+                "https://example.com/a",
+                "https://example.com/b",
+                "https://example.com/c"
+            ]
+        );
     }
 
     #[test]

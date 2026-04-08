@@ -17,10 +17,10 @@ use url::Url;
 /// Returns `Some((content, source_hint))` on first hit, `None` if all miss.
 pub async fn probe_markdown(client: &rquest::Client, url: &Url) -> Option<(String, ProbeSource)> {
     // 1. Try `.md` suffix on the exact page URL
-    if let Some(md_url) = with_md_suffix(url) {
-        if let Some(text) = try_get_text(client, &md_url).await {
-            return Some((text, ProbeSource::MdSuffix));
-        }
+    if let Some(md_url) = with_md_suffix(url)
+        && let Some(text) = try_get_text(client, &md_url).await
+    {
+        return Some((text, ProbeSource::MdSuffix));
     }
 
     // 2. Try `index.html.md` for directory-style URLs

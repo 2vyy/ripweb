@@ -1,7 +1,7 @@
 //! Platform Search Dispatcher
 //!
-//! Provides the unified `search_query` interface for dispatching search 
-//! requests to various backends (DuckDuckGo, SearXNG, Marginalia). 
+//! Provides the unified `search_query` interface for dispatching search
+//! requests to various backends (DuckDuckGo, SearXNG, Marginalia).
 //! Manages engine selection and structural result normalization.
 
 pub mod arxiv;
@@ -42,10 +42,9 @@ pub async fn search_query(
             .map_err(|e| e.to_string()),
         SearchEngine::Searxng => {
             if searxng_url.is_empty() {
-                return Err(
-                    "--engine=searxng requires --searxng-url to be set. \
-                     Example: --searxng-url https://searx.be".into()
-                );
+                return Err("--engine=searxng requires --searxng-url to be set. \
+                     Example: --searxng-url https://searx.be"
+                    .into());
             }
             searxng::search(client, searxng_url, query, limit).await
         }

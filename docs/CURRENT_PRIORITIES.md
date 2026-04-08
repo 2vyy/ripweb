@@ -19,8 +19,7 @@ This page tracks the state of the `ripweb` engine and its roadmap.
 
 1. **Amazon & Commerce**: Add dedicated product spec and review extraction for the `amazon.com` family.
 2. **Quality Metrics**: Automate structural fidelity checks vs. frozen corpus.
-3. **Clipboard Integration**: Stabilize `-c/--copy` across Linux/macOS/Windows.
-4. **Enhanced YouTube**: Extract more video metadata (category, tags, publish date).
+3. **Enhanced YouTube**: Extract more video metadata (category, tags, publish date).
 
 ---
 

@@ -1,6 +1,6 @@
 //! Wikipedia REST API
 //!
-//! Uses the MediaWiki REST v1 summary endpoint for article abstracts. 
+//! Uses the MediaWiki REST v1 summary endpoint for article abstracts.
 //! Extracts lead sections, infoboxes, and full-text rehydration.
 
 use serde::Deserialize;
@@ -56,7 +56,10 @@ mod tests {
     #[test]
     fn wiki_title_extracted_from_standard_url() {
         let url = Url::parse("https://en.wikipedia.org/wiki/Rust_(programming_language)").unwrap();
-        assert_eq!(wiki_title_from_url(&url).as_deref(), Some("Rust_(programming_language)"));
+        assert_eq!(
+            wiki_title_from_url(&url).as_deref(),
+            Some("Rust_(programming_language)")
+        );
     }
 
     #[test]

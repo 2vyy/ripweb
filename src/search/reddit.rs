@@ -1,6 +1,6 @@
 //! Reddit JSON API
 //!
-//! Fetches structured thread and comment data by appending `.json` 
+//! Fetches structured thread and comment data by appending `.json`
 //! to Reddit URLs. Filters comments by score to preserve signal.
 
 use serde::Deserialize;
@@ -55,7 +55,11 @@ pub fn parse_reddit_json(json: &str) -> Result<RedditContent, serde_json::Error>
         }
     }
 
-    Ok(RedditContent { title, selftext, comments })
+    Ok(RedditContent {
+        title,
+        selftext,
+        comments,
+    })
 }
 
 // ── Serde types ───────────────────────────────────────────────────────────────

@@ -1,0 +1,6 @@
+avoid-breaking-exported-api = false
+cognitive-complexity-threshold = 25
+struct-field-name-threshold = 5
+
+# We do not want unwraps or panics in the main logic, 
+# but they are allowed in tests.

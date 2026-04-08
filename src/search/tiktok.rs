@@ -1,6 +1,6 @@
 //! TikTok Video & Creator Meta
 //!
-//! Uses the TikTok public oEmbed platform to extract creator metadata, 
+//! Uses the TikTok public oEmbed platform to extract creator metadata,
 //! titles, and video descriptions.
 
 use serde::Deserialize;
@@ -33,13 +33,13 @@ fn format_tiktok(oembed: &TiktokOembed, verbosity: u8) -> String {
     );
 
     // Include the description/caption in the body if available and different from title
-    if verbosity >= 2 {
-        if let Some(description) = &oembed.description {
-            let description = description.trim();
-            if !description.is_empty() && description != oembed.title {
-                out.push('\n');
-                out.push_str(description);
-            }
+    if verbosity >= 2
+        && let Some(description) = &oembed.description
+    {
+        let description = description.trim();
+        if !description.is_empty() && description != oembed.title {
+            out.push('\n');
+            out.push_str(description);
         }
     }
 

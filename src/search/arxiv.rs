@@ -1,7 +1,7 @@
 //! ArXiv Research Platform
 //!
-//! Handles Atom API requests to ArXiv to retrieve paper metadata 
-//! and abstracts. Maps PDF URLs back to abstract pages for clean 
+//! Handles Atom API requests to ArXiv to retrieve paper metadata
+//! and abstracts. Maps PDF URLs back to abstract pages for clean
 //! metadata extraction.
 
 use url::Url;
@@ -48,7 +48,7 @@ pub fn parse_arxiv_atom(xml: &str) -> Option<ArxivContent> {
         .trim()
         .replace('\n', " ")
         .to_string();
-    
+
     // Skip the feed-level <title> (index 0), use the entry title (index 1)
     let entry_title = if title.contains("ArXiv") || title.starts_with("1 ") {
         extract_between_nth(xml, "<title>", "</title>", 1)?
@@ -100,7 +100,7 @@ pub fn parse_arxiv_atom(xml: &str) -> Option<ArxivContent> {
 }
 
 /// Format extracted ArXiv content as clean Markdown.
-pub fn format_arxiv_content(content: &ArxivContent) -> String {
+pub fn format_arxiv_content(content: &ArxivContent, verbosity: u8) -> String {
     let authors = if content.authors.is_empty() {
         "Unknown".to_string()
     } else if content.authors.len() <= 3 {
@@ -109,21 +109,35 @@ pub fn format_arxiv_content(content: &ArxivContent) -> String {
         format!("{} et al.", content.authors[0])
     };
 
-    format!(
-        "# {}\n\n**Authors:** {}\n**Published:** {}\n**ArXiv:** {}\n\n## Abstract\n\n{}",
-        content.title,
-        authors,
-        content.published,
-        content.arxiv_id,
-        content.abstract_text,
-    )
+    match verbosity {
+        1 => {
+            format!("- [{}]({})", content.title, content.arxiv_id)
+        }
+        2 => {
+            format!(
+                "# {}\n\n## Abstract\n\n{}",
+                content.title, content.abstract_text
+            )
+        }
+        _ => {
+            format!(
+                "# {}\n\n**Authors:** {}\n**Published:** {}\n**ArXiv:** {}\n\n## Abstract\n\n{}",
+                content.title, authors, content.published, content.arxiv_id, content.abstract_text,
+            )
+        }
+    }
 }
 
 fn extract_between<'a>(haystack: &'a str, open: &str, close: &str, skip: usize) -> Option<&'a str> {
     extract_between_nth(haystack, open, close, skip)
 }
 
-fn extract_between_nth<'a>(haystack: &'a str, open: &str, close: &str, skip: usize) -> Option<&'a str> {
+fn extract_between_nth<'a>(
+    haystack: &'a str,
+    open: &str,
+    close: &str,
+    skip: usize,
+) -> Option<&'a str> {
     let mut remaining = haystack;
     for _ in 0..=skip {
         let start = remaining.find(open)? + open.len();
@@ -159,12 +173,17 @@ mod tests {
     fn format_arxiv_with_many_authors_uses_et_al() {
         let content = ArxivContent {
             title: "Attention Is All You Need".into(),
-            authors: vec!["Vaswani".into(), "Shazeer".into(), "Parmar".into(), "Uszkoreit".into()],
+            authors: vec![
+                "Vaswani".into(),
+                "Shazeer".into(),
+                "Parmar".into(),
+                "Uszkoreit".into(),
+            ],
             published: "2017-06-12".into(),
             abstract_text: "The dominant sequence transduction models...".into(),
             arxiv_id: "1706.03762".into(),
         };
-        let md = format_arxiv_content(&content);
+        let md = format_arxiv_content(&content, 3);
         assert!(md.contains("Vaswani et al."));
         assert!(md.contains("## Abstract"));
     }

@@ -1,6 +1,6 @@
 //! GitHub Platform Integration
 //!
-//! Uses the GitHub REST API to fetch issues, pull requests, and 
+//! Uses the GitHub REST API to fetch issues, pull requests, and
 //! comments. Falls back to raw content for README files.
 
 use serde::Deserialize;
@@ -69,23 +69,30 @@ async fn fetch_readme(
 ) -> Result<String, GithubError> {
     let url = github_raw_url(owner, repo);
     let mut req = client.get(url.as_str());
-    if let Some(t) = std::env::var("GITHUB_TOKEN").ok() {
+    if let Ok(t) = std::env::var("GITHUB_TOKEN") {
         req = req.header("Authorization", format!("Bearer {t}"));
     }
-    let resp = req.send().await.map_err(|e| GithubError::Network(e.to_string()))?;
+    let resp = req
+        .send()
+        .await
+        .map_err(|e| GithubError::Network(e.to_string()))?;
     if resp.status() == 404 {
         return Err(GithubError::NotFound);
     }
-    resp.text().await.map_err(|_| GithubError::Parse("UTF-8".into()))
+    resp.text()
+        .await
+        .map_err(|_| GithubError::Parse("UTF-8".into()))
 }
 
-fn format_readme(text: &str, verbosity: u8) -> String {
+pub(crate) fn format_readme(text: &str, verbosity: u8) -> String {
     match verbosity {
         1 => {
             // V1: List of H1/H2/H3
             let lines: Vec<&str> = text
                 .lines()
-                .filter(|line| line.starts_with("# ") || line.starts_with("## ") || line.starts_with("### "))
+                .filter(|line| {
+                    line.starts_with("# ") || line.starts_with("## ") || line.starts_with("### ")
+                })
                 .collect();
             lines.join("\n")
         }
@@ -105,48 +112,53 @@ fn format_readme(text: &str, verbosity: u8) -> String {
             }
             out
         }
-        3 | _ => text.to_owned(),
+        _ => text.to_owned(),
     }
 }
 
 // ── ISSUES ──────────────────────────────────────────────────────────────────
 
 #[derive(Deserialize)]
-struct GithubIssue {
-    number: u64,
-    title: String,
-    body: Option<String>,
-    labels: Vec<GithubLabel>,
-    user: GithubUser,
-    html_url: String,
+pub struct GithubIssue {
+    pub number: u64,
+    pub title: String,
+    pub body: Option<String>,
+    pub labels: Vec<GithubLabel>,
+    pub user: GithubUser,
+    pub html_url: String,
 }
 
 #[derive(Deserialize)]
-struct GithubLabel {
-    name: String,
+pub struct GithubLabel {
+    pub name: String,
 }
 
 #[derive(Deserialize)]
-struct GithubUser {
-    login: String,
+pub struct GithubUser {
+    pub login: String,
 }
 
 #[derive(Deserialize)]
-struct GithubComment {
-    body: Option<String>,
-    user: GithubUser,
+pub struct GithubComment {
+    pub body: Option<String>,
+    pub user: GithubUser,
 }
 
 async fn github_api_get(client: &rquest::Client, url: &str) -> Result<String, GithubError> {
     let mut req = client.get(url).header("User-Agent", "ripweb-cli");
-    if let Some(t) = std::env::var("GITHUB_TOKEN").ok() {
+    if let Ok(t) = std::env::var("GITHUB_TOKEN") {
         req = req.header("Authorization", format!("Bearer {t}"));
     }
-    let resp = req.send().await.map_err(|e| GithubError::Network(e.to_string()))?;
+    let resp = req
+        .send()
+        .await
+        .map_err(|e| GithubError::Network(e.to_string()))?;
     if resp.status() == 404 {
         return Err(GithubError::NotFound);
     }
-    resp.text().await.map_err(|e| GithubError::Network(e.to_string()))
+    resp.text()
+        .await
+        .map_err(|e| GithubError::Network(e.to_string()))
 }
 
 async fn fetch_issues_list(
@@ -154,7 +166,8 @@ async fn fetch_issues_list(
     owner: &str,
     repo: &str,
 ) -> Result<Vec<GithubIssue>, GithubError> {
-    let url = format!("https://api.github.com/repos/{owner}/{repo}/issues?state=open&sort=comments");
+    let url =
+        format!("https://api.github.com/repos/{owner}/{repo}/issues?state=open&sort=comments");
     let text = github_api_get(client, &url).await?;
     serde_json::from_str(&text).map_err(|e| GithubError::Parse(e.to_string()))
 }
@@ -182,35 +195,57 @@ async fn fetch_issue_comments(
 }
 
 fn format_issues_list(owner: &str, repo: &str, issues: &[GithubIssue], _verbosity: u8) -> String {
-    // A broader query that returns multiple issues is always treated close to V1 (List) 
+    // A broader query that returns multiple issues is always treated close to V1 (List)
     // unless we iterate and fetch their bodies, but the API already gives us bodies.
     let mut out = format!("# Issues for {owner}/{repo}\n\n");
     for issue in issues.iter().take(20) {
-        let labels = issue.labels.iter().map(|l| l.name.as_str()).collect::<Vec<_>>().join(", ");
-        out.push_str(&format!("- [#{}] {} ({}) [Labels: {}]\n", issue.number, issue.title, issue.html_url, labels));
+        let labels = issue
+            .labels
+            .iter()
+            .map(|l| l.name.as_str())
+            .collect::<Vec<_>>()
+            .join(", ");
+        out.push_str(&format!(
+            "- [#{}] {} ({}) [Labels: {}]\n",
+            issue.number, issue.title, issue.html_url, labels
+        ));
     }
     out
 }
 
-fn format_issue(issue: &GithubIssue, comments: &[GithubComment], verbosity: u8) -> String {
+pub fn format_issue(issue: &GithubIssue, comments: &[GithubComment], verbosity: u8) -> String {
     let mut out = String::new();
-    let labels = issue.labels.iter().map(|l| l.name.as_str()).collect::<Vec<_>>().join(", ");
-    
+    let labels = issue
+        .labels
+        .iter()
+        .map(|l| l.name.as_str())
+        .collect::<Vec<_>>()
+        .join(", ");
+
     match verbosity {
         1 => {
             // V1: List of Issue Titles + Numbers + Labels.
-            out.push_str(&format!("- [#{}] {} [Labels: {}]\n", issue.number, issue.title, labels));
+            out.push_str(&format!(
+                "- [#{}] {} [Labels: {}]\n",
+                issue.number, issue.title, labels
+            ));
         }
         2 => {
             // V2: Issue Title + OP's Description.
-            out.push_str(&format!("# [#{}] {}\n**Labels**: {}\n**Author**: {}\n\n", issue.number, issue.title, labels, issue.user.login));
+            out.push_str(&format!(
+                "# [#{}] {}\n**Labels**: {}\n**Author**: {}\n\n",
+                issue.number, issue.title, labels, issue.user.login
+            ));
             if let Some(body) = &issue.body {
                 out.push_str(body);
             }
         }
-        3 | _ => {
+        _ => {
             // V3: Issue Title + OP's Description + All Comments.
-            out.push_str(&format!("# [#{}] {}\n**Labels**: {}\n**Author**: {}\n\n", issue.number, issue.title, labels, issue.user.login));
+            out.push_str(&format!(
+                "# [#{}] {}\n**Labels**: {}\n**Author**: {}\n\n",
+                issue.number, issue.title, labels, issue.user.login
+            ));
             if let Some(body) = &issue.body {
                 out.push_str(body);
             }

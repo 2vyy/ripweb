@@ -84,10 +84,10 @@ pub fn family_hint_for_host(host: &str) -> Option<&str> {
     if let Some(family) = cfg.extract.domain_exact.get(&host) {
         return Some(family.as_str());
     }
-    if let Some(stripped) = host.strip_prefix("www.") {
-        if let Some(family) = cfg.extract.domain_exact.get(stripped) {
-            return Some(family.as_str());
-        }
+    if let Some(stripped) = host.strip_prefix("www.")
+        && let Some(family) = cfg.extract.domain_exact.get(stripped)
+    {
+        return Some(family.as_str());
     }
 
     for rule in &cfg.extract.suffix_rules {

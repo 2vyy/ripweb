@@ -45,7 +45,7 @@ fn extract_from_str(html: &str, source_url: Option<&str>) -> String {
     };
 
     let url_hint = source_url
-        .and_then(|u| url_family_hint(u))
+        .and_then(url_family_hint)
         .unwrap_or(PageFamily::Generic);
     let family = detect_family(&dom, url_hint);
 

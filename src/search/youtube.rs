@@ -1,6 +1,6 @@
 //! YouTube Metadata & Transcripts
 //!
-//! Extracts video metadata (Title, Channel) and localized timed-text 
+//! Extracts video metadata (Title, Channel) and localized timed-text
 //! transcripts for deep content retrieval.
 
 use serde::Deserialize;
@@ -14,11 +14,18 @@ pub fn youtube_video_id(url: &Url) -> Option<String> {
     match url.host_str() {
         Some("youtu.be") => {
             // Path is just /ID
-            url.path_segments()?.next().filter(|s| !s.is_empty()).map(str::to_owned)
+            url.path_segments()?
+                .next()
+                .filter(|s| !s.is_empty())
+                .map(str::to_owned)
         }
         Some("www.youtube.com") | Some("youtube.com") => {
             // /watch?v=ID  or  /shorts/ID
-            if let Some(v) = url.query_pairs().find(|(k, _)| k == "v").map(|(_, v)| v.into_owned()) {
+            if let Some(v) = url
+                .query_pairs()
+                .find(|(k, _)| k == "v")
+                .map(|(_, v)| v.into_owned())
+            {
                 return Some(v);
             }
             let mut segs = url.path_segments()?.filter(|s| !s.is_empty());
@@ -73,12 +80,10 @@ pub fn parse_caption_xml(xml: &str) -> String {
 
     for tag in xml.split("<text ") {
         // Extract `start` attribute
-        let start_sec = tag
-            .find("start=\"")
-            .and_then(|i| {
-                let s = &tag[i + 7..];
-                s.find('"').and_then(|e| s[..e].parse::<f64>().ok())
-            });
+        let start_sec = tag.find("start=\"").and_then(|i| {
+            let s = &tag[i + 7..];
+            s.find('"').and_then(|e| s[..e].parse::<f64>().ok())
+        });
 
         // Extract text content between `>` and `</text>`
         let text = tag
@@ -110,26 +115,34 @@ pub fn parse_caption_xml(xml: &str) -> String {
 }
 
 /// Format oEmbed metadata + optional transcript into Markdown based on verbosity.
-pub fn format_youtube_content(oembed: &YoutubeOembed, transcript: Option<&str>, verbosity: u8) -> String {
-    let mut out = format!("# {}\n\n**Channel:** [{}]({})\n",
-        oembed.title, oembed.author_name, oembed.author_url);
+pub fn format_youtube_content(
+    oembed: &YoutubeOembed,
+    transcript: Option<&str>,
+    verbosity: u8,
+) -> String {
+    let mut out = format!(
+        "# {}\n\n**Channel:** [{}]({})\n",
+        oembed.title, oembed.author_name, oembed.author_url
+    );
 
-    if let Some(tx) = transcript {
-        if !tx.is_empty() {
-            match verbosity {
-                1 => {} // V1: No transcript
-                2 => {
-                    // V2: Truncate transcript to ~500 chars roughly
-                    out.push_str("\n## Transcript Snippet\n\n");
-                    let snippet: String = tx.chars().take(500).collect();
-                    out.push_str(&snippet);
-                    if tx.len() > 500 { out.push_str("... (truncated)"); }
+    if let Some(tx) = transcript
+        && !tx.is_empty()
+    {
+        match verbosity {
+            1 => {} // V1: No transcript
+            2 => {
+                // V2: Truncate transcript to ~500 chars roughly
+                out.push_str("\n## Transcript Snippet\n\n");
+                let snippet: String = tx.chars().take(500).collect();
+                out.push_str(&snippet);
+                if tx.len() > 500 {
+                    out.push_str("... (truncated)");
                 }
-                3 | _ => {
-                    // V3: Full transcript
-                    out.push_str("\n## Transcript\n\n");
-                    out.push_str(tx);
-                }
+            }
+            _ => {
+                // V3: Full transcript
+                out.push_str("\n## Transcript\n\n");
+                out.push_str(tx);
             }
         }
     }
