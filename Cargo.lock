@@ -2065,6 +2065,7 @@ dependencies = [
  "is-terminal",
  "proptest",
  "rand 0.10.0",
+ "regex",
  "rquest",
  "serde",
  "serde_json",
