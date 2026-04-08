@@ -8,6 +8,7 @@ use url::Url;
 /// Normalise a URL for deduplication and cache-key purposes:
 /// * strip `#fragment` anchors
 /// * strip trailing slashes from the path
+/// * strip tracking/noise query parameters (utm_*, fbclid, etc.)
 ///
 /// Returns `None` if `raw` cannot be parsed as an absolute URL.
 pub fn normalize(raw: &str) -> Option<String> {
@@ -25,7 +26,8 @@ pub fn normalize(raw: &str) -> Option<String> {
         url.set_path(path.trim_end_matches('/'));
     }
 
-    Some(url.into())
+    // Strip tracking/noise query parameters.
+    Some(crate::minify::strip_tracking(url.as_str()))
 }
 
 #[cfg(test)]
@@ -80,5 +82,17 @@ mod tests {
     #[test]
     fn returns_none_for_garbage() {
         assert!(normalize("not a url at all!!!").is_none());
+    }
+
+    #[test]
+    fn strips_utm_params() {
+        let n = normalize("https://example.com/page?utm_source=newsletter&id=42").unwrap();
+        assert_eq!(n, "https://example.com/page?id=42");
+    }
+
+    #[test]
+    fn strips_fbclid() {
+        let n = normalize("https://example.com/page?fbclid=abc123&q=rust").unwrap();
+        assert_eq!(n, "https://example.com/page?q=rust");
     }
 }
