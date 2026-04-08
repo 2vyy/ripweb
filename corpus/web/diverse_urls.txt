@@ -1,0 +1,11 @@
+https://stackoverflow.com/questions/11227809/why-is-processing-a-sorted-array-faster-than-processing-an-unsorted-array
+https://www.reddit.com/r/wallstreetbets/comments/1scr07m/how_im_playing_the_spacex_ipo_for_a_possible_400/
+https://github.com/tokio-rs/tokio/issues/1879
+https://news.ycombinator.com/item?id=47340079
+https://news.ycombinator.com/item?id=47326101
+https://docs.rs/axum/latest/axum/
+https://www.theverge.com/tech/907015/gemini-google-maps-hands-on
+https://react.dev/reference/react/useState
+https://aws.amazon.com/ai/machine-learning/
+https://docs.factory.ai/welcome
+https://doi.org/10.48550/arXiv.1706.03762

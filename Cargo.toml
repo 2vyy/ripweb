@@ -1,0 +1,71 @@
+[package]
+name = "ripweb"
+version = "0.1.0"
+edition = "2024"
+
+[[bench]]
+name = "minify"
+harness = false
+
+[dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# HTTP client with TLS/JA3/JA4 fingerprint impersonation (built-in, no feature flag needed)
+# Note: reqwest-impersonate (0.0.0) is unpublished; rquest is the active maintained fork
+# charset feature bundles encoding_rs for Shift-JIS/ISO-8859-1 transcoding
+rquest = { version = "5", features = ["json", "charset", "gzip", "brotli"] }
+
+# Charset transcoding — re-exported by rquest but must be declared to import directly
+encoding_rs = "0.8"
+
+# HTML parsing
+tl = "0.7"
+
+# CLI argument parsing
+clap = { version = "4", features = ["derive"] }
+
+# URL manipulation
+url = "2"
+
+# XDG config/cache paths
+directories = "5"
+
+# Structured logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# TTY detection for piped output
+is-terminal = "0.4"
+
+# Token estimation for --stat flag
+tiktoken-rs = "0.9"
+
+# JSON support
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+dashmap = "6.1.0"
+sha2 = "0.11.0"
+rand = "0.10.0"
+hex = "0.4.3"
+indicatif = "0.18.4"
+arboard = "3.6.1"
+
+[dev-dependencies]
+# Snapshot testing for extraction pipeline
+insta = { version = "1", features = ["json"] }
+
+# CPU benchmarks for the minification state machine
+criterion = { version = "0.5", features = ["html_reports"] }
+
+# Mock HTTP servers for network layer tests
+wiremock = "0.6"
+
+# Property-based testing for the state machine
+proptest = "1"
+tempfile = "3.27.0"
+filetime = "0.2.27"
+
+# Metrics evaluation
+tiktoken-rs = "0.9"

@@ -1,0 +1,32 @@
+[extract]
+default_family = "generic"
+
+[extract.domain_exact]
+"docs.rs" = "docs"
+"developer.mozilla.org" = "docs"
+"react.dev" = "docs"
+"doc.rust-lang.org" = "docs"
+"stackoverflow.com" = "forum"
+"stackexchange.com" = "forum"
+"reddit.com" = "forum"
+"old.reddit.com" = "forum"
+"news.ycombinator.com" = "forum"
+"wikipedia.org" = "knowledge"
+"en.wikipedia.org" = "knowledge"
+"amazon.com" = "product"
+"bestbuy.com" = "product"
+"newegg.com" = "product"
+"walmart.com" = "product"
+"target.com" = "product"
+
+[[extract.suffix_rules]]
+suffix = ".readthedocs.io"
+family = "docs"
+
+[[extract.suffix_rules]]
+suffix = ".github.io"
+family = "docs"
+
+[[extract.suffix_rules]]
+suffix = ".gov"
+family = "knowledge"
