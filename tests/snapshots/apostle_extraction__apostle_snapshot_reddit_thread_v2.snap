@@ -1,0 +1,75 @@
+---
+source: tests/apostle_extraction.rs
+expression: md
+---
+# Internet archaeology: the definitive, end-all source for why Rust is named "Rust"
+
+**March 31, 2012**
+
+http://irclog.gr/#show/irc.mozilla.org/rust/127558
+
+    &lt;jonanin&gt; any history behind the name?
+    &lt;graydon&gt; jonanin: "rust"?
+    &lt;jonanin&gt; yeah
+    &lt;graydon&gt; people keep asking and I keep making up different explanations.
+    &lt;graydon&gt; from an email exchange with an early private reviewer of rustboot:
+    &lt;graydon&gt; &gt;&gt; I love the name. I take it that it refers to your scavenging the
+    &lt;graydon&gt; &gt;&gt; skeletal hulks of dead languages, now covered in vines...?
+    &lt;graydon&gt; &gt;
+    &lt;graydon&gt; &gt; A little. Also big metallic things. And rusts and smuts, fungi. And it's a
+    &lt;graydon&gt; &gt; nice substring of "robust".
+    &lt;jonanin&gt; hah
+    &lt;jonanin&gt; interesting
+    &lt;graydon&gt; IOW I don't have a really good explanation. it seemed like a good name. (also a substring
+              of "trust", "frustrating", "rustic" and ... "thrust"?)
+    &lt;graydon&gt; I think I named it after fungi. rusts are amazing creatures.
+    &lt;graydon&gt; Five-lifecycle-phase heteroecious parasites. I mean, that's just _crazy_.
+    &lt;graydon&gt; talk about over-engineered for survival
+    &lt;jonanin&gt; what does that mean? :]
+    &lt;graydon&gt; fungi are amazingly robust
+    &lt;graydon&gt; to start, they are distributed organisms. not single cellular, but also no single point of
+              failure.
+    &lt;graydon&gt; then depending on the fungi, they have more than just the usual 2 lifecycle phases of
+              critters like us (somatic and gamete)
+    &lt;jonanin&gt; ohhh 
+    &lt;jonanin&gt; those kind of phases
+    &lt;graydon&gt; they might have 3, 4, or 5 lifecycle stages. several of which might cross back on one
+              another (meet and reproduce, restart the lineage) and/or self-reproduce or reinfect
+    &lt;jonanin&gt; but i mean
+    &lt;jonanin&gt; you have haploid gametes and diploid somatic cells right? what else could there be?
+    &lt;graydon&gt; and in rusts, some of them actually alternate between multiple different hosts. so a crop
+              failure or host death of one sort doesn't kill off the line.
+    &lt;graydon&gt; they can double up!
+    &lt;graydon&gt; http://en.wikipedia.org/wiki/Dikaryon
+    &lt;graydon&gt; it's madness. basically like someone was looking at sexual reproduction and said "nah, way
+              too failure-prone, let's see how many other variations we can do in parallel"
+    &lt;jonanin&gt; I can't really understand that lol. I'm only 3/4 the way through my *highschool* bio class
+    &lt;jonanin&gt; which is not much
+    &lt;graydon&gt; ! 
+    &lt;jonanin&gt; I  understood maybe half the words on that page
+    &lt;evanmcc&gt; that's totally insane
+    &lt;jonanin&gt; so a gamete becomes two different organisms in parallel?
+    &lt;graydon&gt; highschool? gosh. I ... definitely was not landing patches on other people's compilers in
+              highscool. precocious! you have a bright future in programming
+    &lt;rumbleca&gt; rust never sleeps...
+    &lt;graydon&gt; jonanin: something like this, yeah. I think basically they have lifecycle phases that are
+              part of two separate reproduction cycles at the same time or something. it's very
+    		  confusing. I took a mycology course trying to understand all this and it got far too
+    		  complex for me to follow
+    &lt;graydon&gt; anyway, I remember being kinda into them back when I was picking the name.
+    &lt;graydon&gt; but then everyone thinks it's a pun on "chrome" so maybe we should stick with that
+    &lt;jonanin&gt; hahahha
+
+**TL;DR**: Rust is named after [a fungus](http://en.wikipedia.org/wiki/Rust_%28fungus%29) that is robust, distributed, and parallel. And, Graydon is a biology nerd.
+
+^*This* ^*post* ^*brought* ^*to* ^*you* ^*by* ^*your* ^*friendly* ^*neighborhood* ^*Rust* ^*historian*
+
+## Comments
+
+Yay, biology!
+
+Wait! Then why the symbol of the language is a cogwheel?
+
+---
+
+Please open a PR that adds this to the FAQ :P
