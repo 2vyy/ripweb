@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>API Reference — ripweb docs</title></head>
+<body>
+
+  <!-- Boilerplate header -->
+  <header id="site-header">
+    <a href="/">ripweb</a>
+    <nav><a href="/docs">Docs</a> <a href="/blog">Blog</a></nav>
+  </header>
+
+  <!-- Duplicate TOC sidebar that should be stripped -->
+  <div class="sidebar toc" id="sidebar-toc">
+    <h2>On this page</h2>
+    <ul>
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#fetch">fetch()</a></li>
+      <li><a href="#extract">extract()</a></li>
+    </ul>
+  </div>
+
+  <!-- Real docs content -->
+  <main class="docs reference-content" id="main-content">
+    <h1 id="overview">API Reference</h1>
+    <p>The following functions are part of the public ripweb API surface. They are stable unless marked experimental.</p>
+
+    <h2 id="fetch">fetch(url: &amp;str) -&gt; Result&lt;Bytes&gt;</h2>
+    <p>Fetches a URL using the configured HTTP client with connection pooling and domain politeness.</p>
+    <pre><code class="language-rust">let bytes = ripweb::fetch("https://example.com").await?;</code></pre>
+
+    <h2 id="extract">extract(bytes: &amp;[u8]) -&gt; Result&lt;String&gt;</h2>
+    <p>Extracts structured Markdown from raw HTML bytes. Applies the boilerplate nuke list, candidate scoring, and family-aware rendering.</p>
+    <pre><code class="language-rust">let markdown = ripweb::extract(&amp;bytes)?;
+println!("{}", markdown);</code></pre>
+
+    <h3>Parameters</h3>
+    <ul>
+      <li><code>bytes</code> — raw HTML input, must be valid UTF-8 or will be transcoded</li>
+      <li><code>content_type</code> — optional HTTP Content-Type header for charset detection</li>
+    </ul>
+
+    <h3>Returns</h3>
+    <p>A <code>Result&lt;String&gt;</code> where the <code>String</code> is a stable Markdown representation of the page content.</p>
+  </main>
+
+  <!-- Related links rail — should be stripped -->
+  <div class="related recommend sidebar-extra" id="related-docs">
+    <h2>Related articles</h2>
+    <ul>
+      <li><a href="/docs/configuration">Configuration guide</a></li>
+      <li><a href="/docs/testing">Testing guide</a></li>
+    </ul>
+  </div>
+
+  <footer id="site-footer">
+    <p class="copyright">© 2024 ripweb contributors</p>
+  </footer>
+
+</body>
+</html>
