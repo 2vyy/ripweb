@@ -115,7 +115,7 @@ async fn handle_platform(
             Ok((format_hn(&content, cli.mode), 1))
         }
         PlatformRoute::Wikipedia { title } => {
-            if cli.mode.density_tier() >= 3 {
+            if cli.verbosity >= 3 {
                 let full_url = url::Url::parse(&format!("https://en.wikipedia.org/wiki/{}", title))
                     .map_err(|e| RipwebError::Network(format!("Invalid Wikipedia URL: {e}")))?;
                 return handle_generic_url(client, full_url, cli, retry, sems, cache).await;
@@ -273,7 +273,8 @@ async fn handle_generic_url(
     sems: DomainSemaphores,
     cache: Option<Arc<Cache>>,
 ) -> Result<(String, usize), RipwebError> {
-    if (cli.allow_cloud || cli.mode.jina_required())
+    if cli.allow_cloud
+        && cli.verbosity >= 3
         && let Some(jina_text) = fetch_via_jina(client, &url).await
     {
         return Ok((
@@ -294,6 +295,30 @@ async fn handle_generic_url(
     }
 
     let (text, count) = run_crawler(client, url.clone(), cli, retry, sems, cache).await?;
+
+    if text.trim().len() < 150 && count == 1 {
+        if cli.allow_cloud {
+            if let Some(jina_text) = fetch_via_jina(client, &url).await {
+                return Ok((
+                    format!(
+                        "<!-- Processed via Jina.ai Cloud Proxy -->\n\n{}",
+                        format_generic(&jina_text, &url, cli.verbosity)
+                    ),
+                    1,
+                ));
+            }
+        } else {
+            eprintln!(
+                "Warning: Extracted content is extremely sparse. This site may require JavaScript."
+            );
+            eprintln!(
+                "Hint: Use the --allow-cloud flag to bypass this using a cloud JS-rendering proxy."
+            );
+        }
+    }
+
+    Ok((format_generic(&text, &url, cli.verbosity), count))
+}
 
     if text.trim().len() < 150 && count == 1 {
         if cli.allow_cloud {
