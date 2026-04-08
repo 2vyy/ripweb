@@ -1,0 +1,3 @@
+url = "https://stackoverflow.com/questions/11227809"
+fetched_at = "2026-04-08"
+notes = "Most-voted SO question. Q+A with accepted answer. Tests answer extraction over question noise."

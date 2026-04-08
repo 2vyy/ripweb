@@ -1,0 +1,6 @@
+---
+source: tests/apostle_extraction.rs
+assertion_line: 54
+expression: md
+---
+[45](/login)

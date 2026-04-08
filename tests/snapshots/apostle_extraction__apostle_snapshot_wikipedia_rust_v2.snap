@@ -1,0 +1,9 @@
+---
+source: tests/apostle_extraction.rs
+expression: md
+---
+# Rust (programming language)
+
+_General-purpose programming language_
+
+Rust is a general-purpose programming language. It is noted for its emphasis on performance, type safety, concurrency, and memory safety.

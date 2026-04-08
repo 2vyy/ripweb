@@ -1,0 +1,46 @@
+---
+source: tests/apostle_extraction.rs
+expression: md
+---
+It's very easy to get started with Ghost using an existing theme and the settings in Ghost Admin. But when you're ready to take things to the next level, it's possible to customize your Ghost site entirely using HTML and CSS.
+
+Advanced developers can also go even further and build entirely custom workflows using the [Ghost APIs](https://ghost.org/docs/content-api/).
+
+Don't worry though, all of this is *completely* optional. In fact, most publishers don't customize their Ghost sites at this level until they've focused on the most important things — publishing unique content and growing an audience.
+
+The great thing about the power and flexibility of Ghost is that the tool grows with you. There's always another level of what's possible, but only when you need it.
+
+So if you find yourself wondering what advanced customization options are out there and how to get started, keep reading.
+
+## Getting started with custom themes
+
+Some of the most common things publishers do when they customize their theme include:
+
+- Creating a custom homepage, to include custom marketing copy and styles, or edit the default index of posts that appear on the home page.
+- Create custom post templates that can be reused on multiple posts or pages. For example, different layout options for different types of content such as podcast episodes or long-form articles.
+- Creating custom member signup flows instead of, or to supplement the existing Portal experience.
+- Small adjustments to add or remove elements from a theme, such as a featured posts loop, or a custom footer layout.
+- General style updates to a theme to make it more aligned with your brand.
+
+These are just some of the most common examples. You can customize almost anything you can think of — and the best part is, you don't need to start from scratch entirely, you can just build on top of one of the existing Ghost themes.
+
+## Quick links
+
+Unless you are a theme developer yourself, you'll probably want to consider **[hiring an expert](https://ghost.org/experts)** to help with your project. When working with theme developers, make sure you spend the time putting together a great brief that explains your requirements fully:
+[How to create a design brief for a Ghost theme [template] Getting your theme design project right is important — here’s a template to get you started. Ghost Newsletter Kym Ellis](https://ghost.org/resources/website-design-brief/)
+If you're working with a developer who is new to Ghost, or building Ghost themes yourself, here's all of the tools needed to get started:
+
+- [Developer documentation](https://ghost.org/docs/themes) and [in-depth tutorials](https://ghost.org/tutorials/)
+- [O [pen source repositories](https://github.com/tryghost/casper/)](https://github.com/tryghost/casper/) for great code examples
+- A guide to [installing Ghost locally](https://ghost.org/docs/install/local)
+- How to set up a [GitHub Actions integration](https://ghost.org/integrations/github)
+- Our [developer forum](https://forum.ghost.org/) for community support
+
+Ghost themes are incredibly sensible and easy to work with for anyone with existing knowledge of HTML and CSS. Any theme developer who has worked with other popular theme frameworks such as WordPress or Shopify will be able to pick up a project using the Ghost theme layer in no time!
+
+---
+
+## Get trends & tips delivered to you.
+
+A weekly roundup of emerging trends, products and ideas in the creator economy, trusted by **50,000+** readers.
+No spam. No jibberjabber. Unsubscribe any time.
