@@ -1,8 +1,8 @@
 # Implementation Plan - Improve generic content selection heuristics and implement initial page-family detection
 
 ## Phase 1: Research and Baseline (Refinement)
-- [ ] Task: Analyze current extraction failures in `tests/fixtures/torture/`
-- [ ] Task: Document current scoring heuristics and identified weaknesses in `docs/EXTRACTION.md`
+- [x] Task: Analyze current extraction failures in `tests/fixtures/torture/`
+- [x] Task: Document current scoring heuristics and identified weaknesses in `docs/EXTRACTION.md`
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Research and Baseline (Refinement)' (Protocol in workflow.md)
 
 ## Phase 2: Enhanced Content Selection Heuristics

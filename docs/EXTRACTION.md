@@ -68,20 +68,22 @@ Candidate search order:
 5. hinted `div` containers: `content`, `article`, `post`, `doc`, `markdown`, `story`
 6. `body`
 
+### Scoring Heuristics
+
 Each candidate is scored using:
 
-- word count
-- paragraph count
-- heading count
-- code fence count
-- list item count
-- link count
-- short line count
-- tag-type bonuses
-- positive and negative `id` / `class` hints
-- page-family-specific score adjustments
+- **Base Density**: `word_count`, `paragraphs` (x24), `headings` (x18), `code_fences` (x20), and `list_items` (x10).
+- **Penalties**: `link_count` (-x6) and `short_lines` (-x2).
+- **Tag Weighting**: Positive for `article` (+80), `main` (+60), `section` (+20), `div` (+10), `table` (+12); negative for `body` (-40).
+- **Attribute Hinting**: Positive (+24) and negative (-60) hints in `id` and `class` attributes.
+- **Family Adjustments**: Family-specific score adjustments (e.g., higher weight for code fences in `Docs`).
 
-The highest-scoring candidate becomes the extraction root.
+### Identified Weaknesses
+
+- **Lack of Depth Penalization**: Deeply nested boilerplate can sometimes accumulate high scores without being penalized for its distance from the root.
+- **Naive Link Penalty**: Using a flat `link_count` penalty doesn't account for the ratio of links to content, which is a stronger signal for boilerplate.
+- **Missing Semantic Boosts**: No explicit boost for high-density text nodes with semantic markers beyond basic tag weighting.
+- **Family Misclassification**: Sparse pages can be easily misclassified, leading to suboptimal score adjustments.
 
 ---
 
