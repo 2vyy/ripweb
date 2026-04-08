@@ -40,7 +40,7 @@ pub fn render_tag(tag: &tl::HTMLTag, parser: &tl::Parser) -> String {
         "main" | "article" | "body" => render_children_blocks(tag, parser),
         "section" | "div" | "aside" => {
             let rendered = render_children_blocks(tag, parser);
-            if prune_sidebar(&rendered) {
+            if prune_sidebar(&rendered, tag, parser) {
                 return String::new();
             }
             rendered
@@ -73,10 +73,17 @@ pub fn cleanup_markdown(text: &str) -> String {
     out.trim().to_owned()
 }
 
-fn prune_sidebar(rendered: &str) -> bool {
+fn prune_sidebar(rendered: &str, tag: &tl::HTMLTag, parser: &tl::Parser) -> bool {
     if rendered.len() < 30 {
         return false;
     }
+    // Protect blocks containing technical spec tables
+    if let Some(mut tables) = tag.query_selector(parser, "table")
+        && tables.next().is_some()
+    {
+        return false;
+    }
+
     let mut link_chars = 0;
     let mut clean_len = 0;
     let mut in_bracket = false;
