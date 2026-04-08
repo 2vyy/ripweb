@@ -1,5 +1,6 @@
 ---
 source: tests/apostle_extraction.rs
+assertion_line: 33
 expression: md
 ---
 From Wikipedia, the free encyclopedia General-purpose programming language

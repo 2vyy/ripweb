@@ -1,5 +1,6 @@
 ---
 source: tests/apostle_extraction.rs
+assertion_line: 12
 expression: md
 ---
 Asked 13 years, 9 months ago Modified [today](?lastactivity) Viewed 2.0m times

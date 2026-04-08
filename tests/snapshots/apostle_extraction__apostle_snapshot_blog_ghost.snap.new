@@ -1,5 +1,6 @@
 ---
 source: tests/apostle_extraction.rs
+assertion_line: 40
 expression: md
 ---
 It's very easy to get started with Ghost using an existing theme and the settings in Ghost Admin. But when you're ready to take things to the next level, it's possible to customize your Ghost site entirely using HTML and CSS.
