@@ -1,6 +1,5 @@
 pub mod cli;
 pub mod config;
-pub mod corpus;
 pub mod error;
 pub mod extract;
 pub mod fetch;

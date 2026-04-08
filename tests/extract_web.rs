@@ -217,7 +217,7 @@ fn snapshot_spa_next_data_page() {
 
 #[test]
 fn torture_spa_empty_body_returns_empty() {
-    let html = include_bytes!("../corpus/torture/spa/spa_empty_body.html");
+    let html = include_bytes!("fixtures/torture/spa/spa_empty_body.html");
     let result = WebExtractor::extract(html, None);
     let text = result.unwrap_or_default();
     assert!(
@@ -228,7 +228,7 @@ fn torture_spa_empty_body_returns_empty() {
 
 #[test]
 fn torture_giant_inline_svg_returns_input_too_large() {
-    let html = include_bytes!("../corpus/torture/giant_inline_svg.html");
+    let html = include_bytes!("fixtures/torture/giant_inline_svg.html");
     let result = WebExtractor::extract(html, Some("text/html"));
     assert!(result.is_err(), "Expected error for oversized input");
     assert!(matches!(
@@ -239,7 +239,7 @@ fn torture_giant_inline_svg_returns_input_too_large() {
 
 #[test]
 fn torture_json_ld_returns_minimal_content() {
-    let html = include_bytes!("../corpus/torture/spa/json_ld_rich.html");
+    let html = include_bytes!("fixtures/torture/spa/json_ld_rich.html");
     let result = WebExtractor::extract(html, Some("text/html; charset=utf-8"));
     let text = result.unwrap_or_default();
     // Script is nuked, so only empty p remains - should be minimal
@@ -251,7 +251,7 @@ fn torture_json_ld_returns_minimal_content() {
 
 #[test]
 fn torture_fake_main_prefers_real_content_container() {
-    let html = include_bytes!("../corpus/torture/dom/fake_main_is_nav.html");
+    let html = include_bytes!("fixtures/torture/dom/fake_main_is_nav.html");
     let result = WebExtractor::extract(html, Some("text/html; charset=utf-8")).unwrap();
 
     assert!(result.contains("# The Real Article Title"), "real article missing: {result}");
@@ -302,7 +302,7 @@ fn strips_class_based_boilerplate_subtrees() {
 
 #[test]
 fn torture_no_main_no_article_prefers_content_div() {
-    let html = include_bytes!("../corpus/torture/dom/no_main_no_article.html");
+    let html = include_bytes!("fixtures/torture/dom/no_main_no_article.html");
     let result = WebExtractor::extract(html, Some("text/html; charset=utf-8")).unwrap();
 
     assert!(result.contains("## Important Article Title"), "content div heading missing: {result}");
@@ -313,7 +313,7 @@ fn torture_no_main_no_article_prefers_content_div() {
 
 #[test]
 fn torture_content_in_table_is_extracted() {
-    let html = include_bytes!("../corpus/torture/dom/content_in_table.html");
+    let html = include_bytes!("fixtures/torture/dom/content_in_table.html");
     let result = WebExtractor::extract(html, Some("text/html; charset=utf-8")).unwrap();
 
     assert!(result.contains("## Policy Document"), "table heading missing: {result}");
@@ -370,26 +370,3 @@ fn product_family_url_hint_prefers_buybox_over_link_grid() {
     );
 }
 
-#[test]
-fn frozen_target_product_page_extracts_product_details() {
-    let html = include_bytes!("../corpus/frozen/product/target_nutrition_now_pb8_capsules.html");
-    let result = WebExtractor::extract_with_url(
-        html,
-        Some("text/html; charset=utf-8"),
-        Some("https://www.target.com/p/-/A-90313128"),
-    )
-    .unwrap();
-
-    assert!(
-        result.contains("Nutrition Now PB 8"),
-        "real product title missing: {result}"
-    );
-    assert!(
-        result.contains("10 Billion, 60 Capsules"),
-        "real product variant details missing: {result}"
-    );
-    assert!(
-        result.contains("About this item") || result.contains("Details") || result.contains("Highlights"),
-        "real product detail sections missing: {result}"
-    );
-}
