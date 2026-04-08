@@ -8,66 +8,77 @@ This wiki is the authoritative reference for all development decisions. When two
 OUTPUT_CONTRACT.md  >  EXTRACTION.md  >  everything else
 ```
 
-.
-├── benches
-│   ├── minify.rs
-│   └── README.md
-├── Cargo.lock
-├── Cargo.toml
-├── config
-│   └── ripweb.toml
-├── docs
-│   ├── CONFIGURATION.md
-│   ├── CURRENT_PRIORITIES.md
-│   ├── EXTRACTION.md
-│   ├── NETWORK.md
-│   ├── OUTPUT_CONTRACT.md
-│   ├── PRODUCT_SPEC.md
-│   ├── README.md
-│   └── TESTING.md
-├── src
-│   ├── cli.rs
-│   ├── main.rs
-│   ├── router.rs
-│   ├── run.rs
-│   ├── extract
-│   │   ├── boilerplate.rs, candidate.rs, family.rs, jina.rs
-│   │   ├── links.rs, mod.rs, postprocess.rs, render.rs, web.rs
-│   ├── fetch
-│   │   ├── cache.rs, client.rs, crawler.rs, error.rs, probe.rs
-│   │   ├── llms_txt.rs, mod.rs, normalize.rs, politeness.rs, preflight.rs
-│   ├── minify
-│   │   ├── mod.rs, state_machine.rs, urls.rs
-│   └── search
-│       ├── arxiv.rs, duckduckgo.rs, github.rs, hackernews.rs
-│       ├── mod.rs, reddit.rs, stackoverflow.rs, wikipedia.rs
-└── tests
-    ├── cli.rs
-    ├── crawler.rs
-    ├── extract_web.rs
-    ├── fetch_cache.rs
-    ├── fetch_client.rs
-    ├── fetch_llms_txt.rs
-    ├── fetch_network.rs
-    ├── fixtures
-    │   ├── extract
-    │   ├── search
-    │   └── torture
-    │       ├── density
-    │       ├── dom
-    │       ├── encoding
-    │       └── spa
-    ├── output_contract.rs
-    ├── README.md
-    ├── router.rs
-    ├── search_duckduckgo.rs
-    ├── search_github.rs
-    ├── search_hackernews.rs
-    ├── search_reddit.rs
-    └── snapshots
-        ├── extract_web__snapshot_article_clean_page.snap
-        ├── extract_web__snapshot_bloated_generic_page.snap
-        └── extract_web__snapshot_spa_next_data_page.snap
+## Program Flow
+
+```text
+  [ CLI Input ]  
+        │
+        ▼
+  [ Router ] ──────────┐
+        │              ▼
+  [ Search ]    [ URL Classification ]
+ (DuckDuckGo)          │
+        │              ├─► Platform API (Wikipedia, SO, GitHub, etc.)
+        ▼              ├─► Smart Probes (.md, llms.txt)
+  [ Fetch Loop ] ◄─────┴─► Generic HTML Scraper
+        │
+        ▼
+  [ Extraction ] ──────► [ Post-Process ]
+ (DOM parsing)          (Re-ranking, Cleaning)
+        │                      │
+        └──────────┬───────────┘
+                   │
+                   ▼
+           [ Output Mode ]
+        (Markdown | Aggressive)
+                   │
+                   ▼
+                [ Stdout ]
+```
+
+---
+
+## File Tree
+
+## Project Structure
+
+```text
+ripweb/
+├── config/                  # Domain-family hints and extraction rules
+├── docs/                    # Developer Wiki & architecture guides
+├── benches/                 # Performance regression benchmarks
+├── tests/                   # Integration tests and HTML fixtures
+└── src/                     # Source Code
+    ├── main.rs              # CLI entry point & stream orchestration
+    ├── cli.rs               # Command-line argument definitions
+    ├── router.rs            # URL classification & platform routing
+    ├── run.rs               # The main dispatch & coordination loop
+    ├── search/              # Structured Platform APIs
+    │   ├── wikipedia.rs     # REST v1 Summary API
+    │   ├── stackoverflow.rs # SE API v2.3 with answer ranking
+    │   ├── arxiv.rs         # Metadata and Abstract harvesting
+    │   ├── github.rs        # Issue/Comment/README extraction
+    │   ├── reddit.rs        # JSON-native thread parsing
+    │   └── hackernews.rs    # Algolia API integration
+    ├── fetch/               # The Network & Probe Layer
+    │   ├── probe.rs         # .md and llms.txt auto-discovery
+    │   ├── crawler.rs       # Recursive HTML scraper
+    │   ├── client.rs        # MASQ browser impersonator
+    │   ├── cache.rs         # XDG filesystem caching
+    │   ├── politeness.rs    # Domain-keyed concurrency limits
+    │   └── preflight.rs     # Content-Type & size validation
+    ├── extract/             # Content Extraction Engine
+    │   ├── web.rs           # Generic HTML Pipeline
+    │   ├── candidate.rs     # Content-root scoring heuristics
+    │   ├── boilerplate.rs   # Noise-reduction & nuke lists
+    │   ├── family.rs        # Page type classification (Docs, Forum, etc.)
+    │   ├── postprocess.rs   # Re-ranking & sidebar stripping
+    │   ├── render.rs        # DOM to Markdown conversion
+    │   └── jina.rs          # Universal high-fidelity fallback
+    └── minify/              # Post-Extraction Compression
+        ├── state_machine.rs # Zero-allocation token killer
+        └── urls.rs          # Tracking parameter stripper
+```
 
 
 ---
