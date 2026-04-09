@@ -104,9 +104,9 @@ pub fn parse_so_answers(json: &str) -> Result<Vec<SoAnswer>, serde_json::Error> 
 }
 
 /// Format the extracted SO content as clean Markdown.
-pub fn format_so_content(content: &SoContent, verbosity: u8) -> String {
+pub fn format_so_content(content: &SoContent, mode: crate::mode::Mode) -> String {
     let mut out = format!("# {}\n\n## Answers\n\n", content.title);
-    let limit = match verbosity {
+    let limit = match mode.density_tier() {
         1 => 1,
         2 => 3,
         _ => usize::MAX,

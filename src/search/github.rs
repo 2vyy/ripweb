@@ -24,16 +24,16 @@ pub async fn handle_github(
     owner: &str,
     repo: &str,
     route: &GitHubRouteType,
-    verbosity: u8,
+    mode: crate::mode::Mode,
 ) -> Result<String, GithubError> {
     match route {
         GitHubRouteType::Readme => {
             let text = fetch_readme(client, owner, repo).await?;
-            Ok(format_readme(&text, verbosity))
+            Ok(format_readme(&text, mode))
         }
         GitHubRouteType::Issues => {
             let issues = fetch_issues_list(client, owner, repo).await?;
-            Ok(format_issues_list(owner, repo, &issues, verbosity))
+            Ok(format_issues_list(owner, repo, &issues, mode))
         }
         GitHubRouteType::Issue(id) => {
             // Need two parallel requests for issue and comments
@@ -41,7 +41,7 @@ pub async fn handle_github(
                 fetch_issue(client, owner, repo, *id),
                 fetch_issue_comments(client, owner, repo, *id),
             )?;
-            Ok(format_issue(&issue, &comments, verbosity))
+            Ok(format_issue(&issue, &comments, mode))
         }
     }
 }
@@ -76,8 +76,8 @@ async fn fetch_readme(
         .map_err(|_| GithubError::Parse("UTF-8".into()))
 }
 
-pub(crate) fn format_readme(text: &str, verbosity: u8) -> String {
-    match verbosity {
+pub(crate) fn format_readme(text: &str, mode: crate::mode::Mode) -> String {
+    match mode.density_tier() {
         1 => {
             // V1: List of H1/H2/H3
             let lines: Vec<&str> = text
@@ -186,7 +186,12 @@ async fn fetch_issue_comments(
     serde_json::from_str(&text).map_err(|e| GithubError::Parse(e.to_string()))
 }
 
-fn format_issues_list(owner: &str, repo: &str, issues: &[GithubIssue], _verbosity: u8) -> String {
+fn format_issues_list(
+    owner: &str,
+    repo: &str,
+    issues: &[GithubIssue],
+    _mode: crate::mode::Mode,
+) -> String {
     // A broader query that returns multiple issues is always treated close to V1 (List)
     // unless we iterate and fetch their bodies, but the API already gives us bodies.
     let mut out = format!("# Issues for {owner}/{repo}\n\n");
@@ -205,7 +210,11 @@ fn format_issues_list(owner: &str, repo: &str, issues: &[GithubIssue], _verbosit
     out
 }
 
-pub fn format_issue(issue: &GithubIssue, comments: &[GithubComment], verbosity: u8) -> String {
+pub fn format_issue(
+    issue: &GithubIssue,
+    comments: &[GithubComment],
+    mode: crate::mode::Mode,
+) -> String {
     let mut out = String::new();
     let labels = issue
         .labels
@@ -214,7 +223,7 @@ pub fn format_issue(issue: &GithubIssue, comments: &[GithubComment], verbosity: 
         .collect::<Vec<_>>()
         .join(", ");
 
-    match verbosity {
+    match mode.density_tier() {
         1 => {
             // V1: List of Issue Titles + Numbers + Labels.
             out.push_str(&format!(

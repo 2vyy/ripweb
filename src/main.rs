@@ -97,13 +97,15 @@ async fn main() -> anyhow::Result<()> {
         std::process::exit(4);
     }
 
+    // Always compute token count (used by both --stat and the output header).
+    let token_count = cl100k_base()
+        .map(|bpe| bpe.encode_with_special_tokens(&text).len())
+        .unwrap_or(0);
+
     if cli.stat {
-        let tokens = cl100k_base()
-            .map(|bpe| bpe.encode_with_special_tokens(&text).len())
-            .unwrap_or(0);
         let size_mb = text.len() as f64 / 1_048_576.0;
         write_stdout(&format!(
-            "Pages: {page_count} | Raw Size: {size_mb:.2} MB | Tokens: {tokens}\n"
+            "Pages: {page_count} | Raw Size: {size_mb:.2} MB | Tokens: {token_count}\n"
         ));
         return Ok(());
     }
@@ -118,6 +120,11 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
+    let header = format!(
+        "# ripweb output\n# Mode: {} • Estimated tokens: {} (cl100k_base) • {} results\n\n",
+        cli.mode, token_count, page_count
+    );
+    write_stdout(&header);
     write_stdout(&text);
     write_stdout("\n");
     Ok(())

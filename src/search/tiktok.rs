@@ -21,19 +21,22 @@ pub fn tiktok_oembed_url(video_url: &str) -> String {
 }
 
 /// Parse TikTok oEmbed JSON and format as Markdown.
-pub fn parse_tiktok_oembed(json: &str, verbosity: u8) -> Result<String, serde_json::Error> {
+pub fn parse_tiktok_oembed(
+    json: &str,
+    mode: crate::mode::Mode,
+) -> Result<String, serde_json::Error> {
     let oembed: TiktokOembed = serde_json::from_str(json)?;
-    Ok(format_tiktok(&oembed, verbosity))
+    Ok(format_tiktok(&oembed, mode))
 }
 
-fn format_tiktok(oembed: &TiktokOembed, verbosity: u8) -> String {
+fn format_tiktok(oembed: &TiktokOembed, mode: crate::mode::Mode) -> String {
     let mut out = format!(
         "# {}\n\n**Creator:** [@{}]({})\n",
         oembed.title, oembed.author_unique_id, oembed.author_url
     );
 
     // Include the description/caption in the body if available and different from title
-    if verbosity >= 2
+    if mode.density_tier() >= 2
         && let Some(description) = &oembed.description
     {
         let description = description.trim();
@@ -82,7 +85,7 @@ mod tests {
             "author_unique_id": "rustacean42",
             "author_url": "https://www.tiktok.com/@rustacean42"
         }"#;
-        let result = parse_tiktok_oembed(json, 2).unwrap();
+        let result = parse_tiktok_oembed(json, crate::mode::Mode::Balanced).unwrap();
         assert!(result.starts_with("# Check out this cool Rust trick"));
         assert!(result.contains("[@rustacean42]"));
     }
@@ -95,7 +98,7 @@ mod tests {
             "author_url": "https://www.tiktok.com/@user",
             "description": "Longer caption text with #hashtags"
         }"#;
-        let result = parse_tiktok_oembed(json, 2).unwrap();
+        let result = parse_tiktok_oembed(json, crate::mode::Mode::Balanced).unwrap();
         assert!(result.contains("Longer caption text"));
     }
 }

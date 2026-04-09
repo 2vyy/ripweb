@@ -110,7 +110,7 @@ fn max_pages_long_flag() {
 #[test]
 fn verbosity_default() {
     let cli = Cli::try_parse_from(["ripweb", "example"]).unwrap();
-    assert_eq!(cli.verbosity, 2);
+    assert_eq!(cli.mode, ripweb::mode::Mode::Balanced);
     assert_eq!(cli.verbose, 0);
 }
 

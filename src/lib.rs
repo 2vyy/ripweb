@@ -10,6 +10,7 @@ pub mod error;
 pub mod extract;
 pub mod fetch;
 pub mod minify;
+pub mod mode;
 pub mod router;
 pub mod run;
 pub mod search;

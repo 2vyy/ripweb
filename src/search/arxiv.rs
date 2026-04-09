@@ -99,7 +99,7 @@ pub fn parse_arxiv_atom(xml: &str) -> Option<ArxivContent> {
 }
 
 /// Format extracted ArXiv content as clean Markdown.
-pub fn format_arxiv_content(content: &ArxivContent, verbosity: u8) -> String {
+pub fn format_arxiv_content(content: &ArxivContent, mode: crate::mode::Mode) -> String {
     let authors = if content.authors.is_empty() {
         "Unknown".to_string()
     } else if content.authors.len() <= 3 {
@@ -108,7 +108,7 @@ pub fn format_arxiv_content(content: &ArxivContent, verbosity: u8) -> String {
         format!("{} et al.", content.authors[0])
     };
 
-    match verbosity {
+    match mode.density_tier() {
         1 => {
             format!("- [{}]({})", content.title, content.arxiv_id)
         }
@@ -182,7 +182,7 @@ mod tests {
             abstract_text: "The dominant sequence transduction models...".into(),
             arxiv_id: "1706.03762".into(),
         };
-        let md = format_arxiv_content(&content, 3);
+        let md = format_arxiv_content(&content, crate::mode::Mode::Verbose);
         assert!(md.contains("Vaswani et al."));
         assert!(md.contains("## Abstract"));
     }

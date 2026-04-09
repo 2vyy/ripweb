@@ -118,7 +118,7 @@ pub fn parse_caption_xml(xml: &str) -> String {
 pub fn format_youtube_content(
     oembed: &YoutubeOembed,
     transcript: Option<&str>,
-    verbosity: u8,
+    mode: crate::mode::Mode,
 ) -> String {
     let mut out = format!(
         "# {}\n\n**Channel:** [{}]({})\n",
@@ -128,7 +128,7 @@ pub fn format_youtube_content(
     if let Some(tx) = transcript
         && !tx.is_empty()
     {
-        match verbosity {
+        match mode.density_tier() {
             1 => {} // V1: No transcript
             2 => {
                 // V2: Truncate transcript to ~500 chars roughly
@@ -250,7 +250,11 @@ mod tests {
             author_url: "https://youtube.com/@test".into(),
             thumbnail_url: None,
         };
-        let out = format_youtube_content(&oembed, Some("**[00:00]** Hello"), 3);
+        let out = format_youtube_content(
+            &oembed,
+            Some("**[00:00]** Hello"),
+            crate::mode::Mode::Verbose,
+        );
         assert!(out.starts_with("# Test Video"));
         assert!(out.contains("## Transcript"));
         assert!(out.contains("**[00:00]** Hello"));
@@ -264,7 +268,7 @@ mod tests {
             author_url: "https://youtube.com/@c".into(),
             thumbnail_url: None,
         };
-        let out = format_youtube_content(&oembed, None, 3);
+        let out = format_youtube_content(&oembed, None, crate::mode::Mode::Verbose);
         assert!(!out.contains("## Transcript"));
     }
 }
