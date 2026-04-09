@@ -241,6 +241,7 @@ mod project_match_tests {
 
 // ── snippet_relevance ─────────────────────────────────────────────────────────
 
+
 mod snippet_relevance_tests {
     use ripweb::search::scoring::{ScorerInput, snippet_relevance};
     use ripweb::search::SearchResult;
@@ -294,5 +295,43 @@ mod snippet_relevance_tests {
             full.delta
         );
         assert!(partial.delta > 0.0);
+    }
+}
+
+// ── domain_diversity ──────────────────────────────────────────────────────────
+
+mod domain_diversity_tests {
+    use ripweb::search::scoring::domain_diversity;
+
+    #[test]
+    fn first_occurrence_gets_zero_penalty() {
+        let c = domain_diversity::score_for_occurrence(0);
+        assert_eq!(c.delta, 0.0, "first occurrence must get 0.0, got {}", c.delta);
+        assert_eq!(c.scorer, "domain_diversity");
+    }
+
+    #[test]
+    fn second_occurrence_gets_penalty() {
+        let c = domain_diversity::score_for_occurrence(1);
+        assert!(c.delta < 0.0, "second occurrence must get negative delta, got {}", c.delta);
+    }
+
+    #[test]
+    fn third_occurrence_gets_larger_penalty_than_second() {
+        let second = domain_diversity::score_for_occurrence(1);
+        let third = domain_diversity::score_for_occurrence(2);
+        assert!(
+            third.delta < second.delta,
+            "third occurrence penalty ({}) must exceed second ({})",
+            third.delta,
+            second.delta
+        );
+    }
+
+    #[test]
+    fn penalty_is_deterministic() {
+        let a = domain_diversity::score_for_occurrence(3);
+        let b = domain_diversity::score_for_occurrence(3);
+        assert_eq!(a.delta, b.delta);
     }
 }
