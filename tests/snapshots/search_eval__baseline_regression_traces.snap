@@ -1,0 +1,71 @@
+---
+source: tests/search_eval.rs
+expression: summary
+---
+[
+  {
+    "gold_urls": [
+      "https://tokio.rs/tokio/tutorial",
+      "https://docs.rs/tokio"
+    ],
+    "intent": "official_docs",
+    "query": "tokio async runtime rust",
+    "top3": [
+      "https://tokio.rs/tokio/tutorial",
+      "https://docs.rs/tokio/latest/tokio/",
+      "https://medium.com/nearprotocol/conquering-the-fear-of-async-in-rust"
+    ]
+  },
+  {
+    "gold_urls": [
+      "https://serde.rs",
+      "https://docs.rs/serde"
+    ],
+    "intent": "official_docs",
+    "query": "serde derive macros rust",
+    "top3": [
+      "https://serde.rs/",
+      "https://crates.io/crates/serde",
+      "https://docs.rs/serde/latest/serde/"
+    ]
+  },
+  {
+    "gold_urls": [
+      "https://docs.rs/clap",
+      "https://clap.rs"
+    ],
+    "intent": "official_docs",
+    "query": "clap argument parser rust derive",
+    "top3": [
+      "https://crates.io/crates/clap",
+      "https://docs.rs/clap/latest/clap/",
+      "https://github.com/clap-rs/clap"
+    ]
+  },
+  {
+    "gold_urls": [
+      "https://docs.rs/reqwest",
+      "https://crates.io/crates/reqwest"
+    ],
+    "intent": "official_docs",
+    "query": "reqwest http client rust async",
+    "top3": [
+      "https://docs.rs/reqwest/latest/reqwest/",
+      "https://crates.io/crates/reqwest",
+      "https://github.com/seanmonstar/reqwest"
+    ]
+  },
+  {
+    "gold_urls": [
+      "https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md",
+      "https://github.com/BurntSushi/ripgrep"
+    ],
+    "intent": "emerging_project_docs",
+    "query": "ripgrep configuration file rg",
+    "top3": [
+      "https://github.com/BurntSushi/ripgrep",
+      "https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md",
+      "https://medium.com/better-programming/ripgrep-tutorial"
+    ]
+  }
+]
