@@ -65,3 +65,85 @@ fn baseline_traces_techdocs() {
         .collect();
     insta::assert_json_snapshot!("baseline_techdocs_traces", summary);
 }
+
+// ── Phase 1: scored eval ──────────────────────────────────────────────────────
+
+use ripweb::search::{SearchResult, eval_types::SearchResultRecord, pipeline::score_results};
+
+fn to_search_result(r: &SearchResultRecord) -> SearchResult {
+    SearchResult {
+        url: r.url.clone(),
+        title: r.title.clone(),
+        snippet: r.snippet.clone(),
+    }
+}
+
+fn scored_traces(
+    fixture_path: &str,
+) -> (
+    Vec<ripweb::search::eval_types::BenchmarkQuery>,
+    Vec<QueryTrace>,
+) {
+    let queries = load_benchmark(fixture_path);
+    let traces: Vec<QueryTrace> = queries
+        .iter()
+        .map(|q| {
+            // Convert baseline_results to SearchResult, run through pipeline.
+            let raw: Vec<SearchResult> = q.baseline_results.iter().map(to_search_result).collect();
+            let scored = score_results(raw, &q.query);
+            // Build a trace from the scored, ranked output.
+            let records: Vec<SearchResultRecord> = scored
+                .iter()
+                .map(|s| SearchResultRecord {
+                    url: s.result.url.clone(),
+                    title: s.result.title.clone(),
+                    snippet: s.result.snippet.clone(),
+                })
+                .collect();
+            QueryTrace::from_engine_results(&q.query, &records)
+        })
+        .collect();
+    (queries, traces)
+}
+
+#[test]
+fn phase1_metrics_regression() {
+    let (queries, traces) = scored_traces("tests/fixtures/search/eval/regression.jsonl");
+    let metrics = compute_metrics(&queries, &traces);
+    insta::assert_json_snapshot!("phase1_regression_metrics", metrics);
+}
+
+#[test]
+fn phase1_metrics_techdocs() {
+    let (queries, traces) = scored_traces("tests/fixtures/search/eval/techdocs_bench.jsonl");
+    let metrics = compute_metrics(&queries, &traces);
+    insta::assert_json_snapshot!("phase1_techdocs_metrics", metrics);
+}
+
+#[test]
+fn phase1_success_at_3_not_worse_than_baseline_regression() {
+    let (bq, bt) = baseline_traces("tests/fixtures/search/eval/regression.jsonl");
+    let (sq, st) = scored_traces("tests/fixtures/search/eval/regression.jsonl");
+    let baseline = compute_metrics(&bq, &bt);
+    let scored = compute_metrics(&sq, &st);
+    assert!(
+        scored.success_at_3 >= baseline.success_at_3,
+        "Phase 1 scoring must not regress Success@3: baseline={}, scored={}",
+        baseline.success_at_3,
+        scored.success_at_3
+    );
+}
+
+#[test]
+fn phase1_success_at_3_not_worse_than_baseline_techdocs() {
+    let (bq, bt) = baseline_traces("tests/fixtures/search/eval/techdocs_bench.jsonl");
+    let (sq, st) = scored_traces("tests/fixtures/search/eval/techdocs_bench.jsonl");
+    let baseline = compute_metrics(&bq, &bt);
+    let scored = compute_metrics(&sq, &st);
+    assert!(
+        scored.success_at_3 >= baseline.success_at_3,
+        "Phase 1 scoring must not regress Success@3: baseline={}, scored={}",
+        baseline.success_at_3,
+        scored.success_at_3
+    );
+}

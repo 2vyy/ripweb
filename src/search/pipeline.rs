@@ -9,9 +9,8 @@ use std::collections::HashMap;
 use crate::config::get_config;
 use crate::search::SearchResult;
 use crate::search::scoring::{
-    ScoredResult, ScorerInput,
-    blocklist_penalty, domain_diversity, domain_trust,
-    extract_host, project_match, snippet_relevance, url_pattern,
+    ScoredResult, ScorerInput, blocklist_penalty, domain_diversity, domain_trust, extract_host,
+    project_match, snippet_relevance, url_pattern,
 };
 use crate::search::trace::ScorerContribution;
 
@@ -55,13 +54,13 @@ pub fn score_results(results: Vec<SearchResult>, query: &str) -> Vec<ScoredResul
                 apply_weight(snippet_relevance::score(&input), weights.snippet_relevance);
 
             // Stateful diversity scorer — depends on engine-rank position.
-            // input is dropped here implicitly before result is moved.
-            drop(input);
-
+            // input borrow ends here; result is moved below.
             let prev_count = *domain_counts.get(&host).unwrap_or(&0);
             domain_counts.insert(host, prev_count + 1);
-            let diversity_c =
-                apply_weight(domain_diversity::score_for_occurrence(prev_count), weights.domain_diversity);
+            let diversity_c = apply_weight(
+                domain_diversity::score_for_occurrence(prev_count),
+                weights.domain_diversity,
+            );
 
             let contributions = vec![
                 trust_c,
