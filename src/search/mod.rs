@@ -7,6 +7,7 @@
 pub mod arxiv;
 pub mod ddg_instant;
 pub mod duckduckgo;
+pub mod eval_types;
 pub mod github;
 pub mod hackernews;
 pub mod marginalia;
