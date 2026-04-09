@@ -2,7 +2,7 @@
 //!
 //! The `run` module contains the top-level dispatch loop for processing
 //! search queries and platform URLs. It coordinates fetching, retries,
-//! caching, and final output formatting based on verbosity.
+//! caching, and final output formatting based on output mode.
 
 use std::sync::Arc;
 
