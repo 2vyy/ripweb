@@ -1,8 +1,0 @@
-# Corpus files are live-scraped real-world HTML pages — do not commit them.
-# Run the seed script to populate:
-#   cargo run --example seed_corpus
-#
-# The only thing committed here is this .gitignore and the README.
-*.html
-*.htm
-*.txt

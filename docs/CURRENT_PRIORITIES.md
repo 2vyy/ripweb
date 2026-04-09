@@ -42,3 +42,6 @@ This page tracks the state of the `ripweb` engine and its roadmap.
 - **Crawl Efficiency**: Parallel fetching is conservative; need more aggressive pipelining.
 - **HTML Heuristics**: Link-density scoring still misidentifies some documentation sidebars as boilerplate.
 - **Rate Limits**: Non-API platforms (Reddit/Wikipedia) are prone to blocks; need smarter proxy rotation or MASQ updates.
+Swap to searcxng or ddg lite native results
+add caching of web queries / url markdown lookup table locally
+

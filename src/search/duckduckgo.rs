@@ -35,33 +35,51 @@ pub fn parse_ddg_html(html: &str, limit: usize) -> Vec<super::SearchResult> {
     };
     let parser = dom.parser();
 
-    let Some(anchors) = dom.query_selector("a.result__a") else {
+    let Some(bodies) = dom.query_selector(".result__body") else {
         return Vec::new();
     };
 
     let mut results = Vec::new();
 
-    for handle in anchors {
+    for handle in bodies {
         if results.len() >= limit {
             break;
         }
 
-        let Some(node) = handle.get(parser) else {
+        let Some(node) = handle.get(parser) else { continue; };
+        let Some(tag) = node.as_tag() else { continue; };
+
+        // Parse inner HTML to isolate queries to this specific result
+        let inner = tag.inner_html(parser);
+        let Ok(sub_dom) = tl::parse(&inner, tl::ParserOptions::default()) else { continue; };
+        let sub_parser = sub_dom.parser();
+
+        // Extract Title & URL
+        let Some(a_node) = sub_dom
+            .query_selector(".result__a")
+            .and_then(|mut q| q.next())
+            .and_then(|h| h.get(sub_parser))
+        else {
             continue;
         };
-        let Some(tag) = node.as_tag() else { continue };
-        let Some(href_val) = tag.attributes().get("href").flatten() else {
-            continue;
-        };
+        let Some(a_tag) = a_node.as_tag() else { continue; };
+        let Some(href) = a_tag.attributes().get("href").flatten() else { continue; };
+        let href_utf8 = href.as_utf8_str();
+        let title = a_tag.inner_text(sub_parser).into_owned();
 
-        let href = href_val.as_utf8_str();
-        let title = tag.inner_text(parser).into_owned();
+        // Extract Snippet
+        let snippet = sub_dom
+            .query_selector(".result__snippet")
+            .and_then(|mut q| q.next())
+            .and_then(|h| h.get(sub_parser))
+            .and_then(|n| n.as_tag())
+            .map(|t| t.inner_text(sub_parser).into_owned());
 
-        if let Some(decoded) = decode_ddg_href(href.as_ref()) {
+        if let Some(decoded) = decode_ddg_href(href_utf8.as_ref()) {
             results.push(super::SearchResult {
                 url: decoded,
                 title,
-                snippet: None,
+                snippet,
             });
         }
     }
