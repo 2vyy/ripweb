@@ -63,12 +63,14 @@ pub struct Cli {
     pub max_pages: usize,
 
     /// Allow pushing data through a cloud extraction parser (like Jina)
+    ///
+    /// Automatically enabled for --mode omega-verbose and --mode aggressive.
     #[arg(long, default_value_t = false)]
     pub allow_cloud: bool,
 
-    /// Output verbosity level (1=Nucleus, 2=Signal, 3=Full Context)
-    #[arg(long, default_value_t = 2, value_parser = clap::value_parser!(u8).range(1..=3))]
-    pub verbosity: u8,
+    /// Output mode controlling information density (see Output Contract)
+    #[arg(long, value_enum, default_value_t = Mode::Balanced)]
+    pub mode: Mode,
 
     /// Dry run: count tokens and print a size summary instead of outputting text
     #[arg(long)]

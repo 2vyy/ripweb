@@ -17,7 +17,10 @@ fn compact_mode_generic_emits_delimiter_and_link() {
         "must start with source delimiter, got: {out:?}"
     );
     assert!(out.contains("- [Generic Page](https://example.com/item)"));
-    assert!(!out.contains("some text"), "compact must not include body text");
+    assert!(
+        !out.contains("some text"),
+        "compact must not include body text"
+    );
 }
 
 #[test]
@@ -44,7 +47,10 @@ fn verbose_mode_generic_emits_full_content() {
         out.starts_with("# --- [Source:"),
         "must start with source delimiter"
     );
-    assert!(!out.contains("... (truncated)"), "verbose must not truncate");
+    assert!(
+        !out.contains("... (truncated)"),
+        "verbose must not truncate"
+    );
     assert!(out.contains("Line 1"));
 }
 
@@ -56,7 +62,10 @@ fn source_delimiter_strips_tracking_params() {
         !out.contains("utm_source"),
         "source delimiter must strip tracking params"
     );
-    assert!(out.contains("id=1"), "non-tracking params must be preserved");
+    assert!(
+        out.contains("id=1"),
+        "non-tracking params must be preserved"
+    );
 }
 
 // ── format_reddit ─────────────────────────────────────────────────────────────
@@ -83,7 +92,10 @@ fn balanced_mode_reddit_top_two_comments() {
     let out = format_reddit(&content, Mode::Balanced);
     assert!(out.contains("# Rust is great"));
     assert!(out.contains("Comment 2"));
-    assert!(!out.contains("Comment 3"), "balanced must cap at 2 comments");
+    assert!(
+        !out.contains("Comment 3"),
+        "balanced must cap at 2 comments"
+    );
 }
 
 #[test]
@@ -121,7 +133,10 @@ fn balanced_mode_hn_top_five_comments() {
     let out = format_hn(&content, Mode::Balanced);
     assert!(out.contains("# Show HN: Ripweb"));
     assert!(out.contains("Comment 5"));
-    assert!(!out.contains("Comment 6"), "balanced must cap at 5 comments");
+    assert!(
+        !out.contains("Comment 6"),
+        "balanced must cap at 5 comments"
+    );
 }
 
 #[test]
@@ -185,12 +200,16 @@ fn compact_mode_github_issue_list_format() {
         title: "Bug".into(),
         body: Some("Description".into()),
         labels: vec![],
-        user: ripweb::search::github::GithubUser { login: "alice".into() },
+        user: ripweb::search::github::GithubUser {
+            login: "alice".into(),
+        },
         html_url: "https://github.com/a/b/issues/1".into(),
     };
     let comments = vec![ripweb::search::github::GithubComment {
         body: Some("Comment 1".into()),
-        user: ripweb::search::github::GithubUser { login: "bob".into() },
+        user: ripweb::search::github::GithubUser {
+            login: "bob".into(),
+        },
     }];
 
     let out = ripweb::search::github::format_issue(&issue, &comments, Mode::Compact);
@@ -205,12 +224,16 @@ fn balanced_mode_github_issue_op_only() {
         title: "Bug".into(),
         body: Some("Description".into()),
         labels: vec![],
-        user: ripweb::search::github::GithubUser { login: "alice".into() },
+        user: ripweb::search::github::GithubUser {
+            login: "alice".into(),
+        },
         html_url: "https://github.com/a/b/issues/1".into(),
     };
     let comments = vec![ripweb::search::github::GithubComment {
         body: Some("Comment 1".into()),
-        user: ripweb::search::github::GithubUser { login: "bob".into() },
+        user: ripweb::search::github::GithubUser {
+            login: "bob".into(),
+        },
     }];
 
     let out = ripweb::search::github::format_issue(&issue, &comments, Mode::Balanced);
@@ -225,12 +248,16 @@ fn verbose_mode_github_issue_with_comments() {
         title: "Bug".into(),
         body: Some("Description".into()),
         labels: vec![],
-        user: ripweb::search::github::GithubUser { login: "alice".into() },
+        user: ripweb::search::github::GithubUser {
+            login: "alice".into(),
+        },
         html_url: "https://github.com/a/b/issues/1".into(),
     };
     let comments = vec![ripweb::search::github::GithubComment {
         body: Some("Comment 1".into()),
-        user: ripweb::search::github::GithubUser { login: "bob".into() },
+        user: ripweb::search::github::GithubUser {
+            login: "bob".into(),
+        },
     }];
 
     let out = ripweb::search::github::format_issue(&issue, &comments, Mode::Verbose);
