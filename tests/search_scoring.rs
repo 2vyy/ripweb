@@ -133,3 +133,63 @@ mod blocklist_tests {
         assert_eq!(c.delta, 0.0);
     }
 }
+
+// ── url_pattern ───────────────────────────────────────────────────────────────
+
+mod url_pattern_tests {
+    use ripweb::search::scoring::{ScorerInput, url_pattern};
+    use ripweb::search::SearchResult;
+
+    fn make_result(url: &str) -> SearchResult {
+        SearchResult { url: url.to_owned(), title: "Title".to_owned(), snippet: None }
+    }
+
+    #[test]
+    fn docs_rs_url_gets_boost() {
+        let r = make_result("https://docs.rs/tokio/latest/tokio/");
+        let inp = ScorerInput { result: &r, query: "tokio", engine_rank: 0 };
+        let c = url_pattern::score(&inp);
+        assert!(c.delta > 0.0, "docs.rs URLs must get a boost, got {}", c.delta);
+        assert_eq!(c.scorer, "url_pattern");
+    }
+
+    #[test]
+    fn reference_path_gets_boost() {
+        let r = make_result("https://doc.rust-lang.org/reference/types.html");
+        let inp = ScorerInput { result: &r, query: "rust types", engine_rank: 0 };
+        let c = url_pattern::score(&inp);
+        assert!(c.delta > 0.0, "/reference/ path must get a boost, got {}", c.delta);
+    }
+
+    #[test]
+    fn medium_com_host_gets_penalty() {
+        let r = make_result("https://medium.com/@someone/rust-tutorial");
+        let inp = ScorerInput { result: &r, query: "rust", engine_rank: 0 };
+        let c = url_pattern::score(&inp);
+        assert!(c.delta < 0.0, "medium.com must get a penalty, got {}", c.delta);
+    }
+
+    #[test]
+    fn dev_to_host_gets_penalty() {
+        let r = make_result("https://dev.to/article/rust-for-beginners");
+        let inp = ScorerInput { result: &r, query: "rust", engine_rank: 0 };
+        let c = url_pattern::score(&inp);
+        assert!(c.delta < 0.0, "dev.to must get a penalty, got {}", c.delta);
+    }
+
+    #[test]
+    fn neutral_url_gets_zero_delta() {
+        let r = make_result("https://example.com/some-page");
+        let inp = ScorerInput { result: &r, query: "rust", engine_rank: 0 };
+        let c = url_pattern::score(&inp);
+        assert_eq!(c.delta, 0.0, "neutral URL must get 0.0, got {}", c.delta);
+    }
+
+    #[test]
+    fn github_io_docs_host_gets_boost() {
+        let r = make_result("https://rust-lang.github.io/rfcs/");
+        let inp = ScorerInput { result: &r, query: "rfcs", engine_rank: 0 };
+        let c = url_pattern::score(&inp);
+        assert!(c.delta > 0.0, "github.io docs hosts must get a boost, got {}", c.delta);
+    }
+}
