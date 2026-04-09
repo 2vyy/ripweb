@@ -193,3 +193,106 @@ mod url_pattern_tests {
         assert!(c.delta > 0.0, "github.io docs hosts must get a boost, got {}", c.delta);
     }
 }
+
+// ── project_match ─────────────────────────────────────────────────────────────
+
+mod project_match_tests {
+    use ripweb::search::scoring::{ScorerInput, project_match};
+    use ripweb::search::SearchResult;
+
+    fn make_result(url: &str, title: &str) -> SearchResult {
+        SearchResult { url: url.to_owned(), title: title.to_owned(), snippet: None }
+    }
+
+    #[test]
+    fn project_name_in_title_gives_boost() {
+        let r = make_result("https://docs.rs/tokio/latest/tokio/", "tokio - Rust");
+        let inp = ScorerInput { result: &r, query: "tokio async runtime rust", engine_rank: 0 };
+        let c = project_match::score(&inp);
+        assert!(c.delta > 0.0, "project name in title must boost, got {}", c.delta);
+        assert_eq!(c.scorer, "project_match");
+    }
+
+    #[test]
+    fn project_name_in_host_gives_boost() {
+        let r = make_result("https://tokio.rs/tokio/tutorial", "Tutorial | Tokio");
+        let inp = ScorerInput { result: &r, query: "tokio async runtime", engine_rank: 0 };
+        let c = project_match::score(&inp);
+        assert!(c.delta > 0.0, "project name in host must boost, got {}", c.delta);
+    }
+
+    #[test]
+    fn generic_query_with_no_project_token_gets_zero() {
+        let r = make_result("https://example.com/page", "Some Page");
+        // "the" "and" "for" are all common words, no project token
+        let inp = ScorerInput { result: &r, query: "the and for", engine_rank: 0 };
+        let c = project_match::score(&inp);
+        assert_eq!(c.delta, 0.0, "no project token must give 0.0, got {}", c.delta);
+    }
+
+    #[test]
+    fn hyphenated_crate_name_is_detected_as_project_token() {
+        let r = make_result("https://docs.rs/serde-json/", "serde-json - Rust");
+        let inp = ScorerInput { result: &r, query: "serde-json serialization", engine_rank: 0 };
+        let c = project_match::score(&inp);
+        assert!(c.delta > 0.0, "hyphenated crate name must be detected, got {}", c.delta);
+    }
+}
+
+// ── snippet_relevance ─────────────────────────────────────────────────────────
+
+mod snippet_relevance_tests {
+    use ripweb::search::scoring::{ScorerInput, snippet_relevance};
+    use ripweb::search::SearchResult;
+
+    fn make_result(url: &str, snippet: Option<&str>) -> SearchResult {
+        SearchResult {
+            url: url.to_owned(),
+            title: "Title".to_owned(),
+            snippet: snippet.map(str::to_owned),
+        }
+    }
+
+    #[test]
+    fn all_query_terms_in_snippet_gives_max_coverage() {
+        let r = make_result("https://tokio.rs/", Some("Tokio is an async runtime for Rust"));
+        let inp = ScorerInput { result: &r, query: "tokio async runtime", engine_rank: 0 };
+        let c = snippet_relevance::score(&inp);
+        assert!(c.delta > 0.0, "full coverage must give positive delta, got {}", c.delta);
+        assert_eq!(c.scorer, "snippet_relevance");
+    }
+
+    #[test]
+    fn no_query_terms_in_snippet_gives_zero() {
+        let r = make_result("https://example.com/", Some("Completely unrelated content here"));
+        let inp = ScorerInput { result: &r, query: "tokio async runtime", engine_rank: 0 };
+        let c = snippet_relevance::score(&inp);
+        assert_eq!(c.delta, 0.0, "no coverage must give 0.0, got {}", c.delta);
+    }
+
+    #[test]
+    fn missing_snippet_gives_zero() {
+        let r = make_result("https://example.com/", None);
+        let inp = ScorerInput { result: &r, query: "tokio async runtime", engine_rank: 0 };
+        let c = snippet_relevance::score(&inp);
+        assert_eq!(c.delta, 0.0, "no snippet must give 0.0, got {}", c.delta);
+    }
+
+    #[test]
+    fn partial_coverage_gives_intermediate_delta() {
+        // "tokio" matches, "async" matches, "runtime" does not
+        let r = make_result("https://tokio.rs/", Some("Tokio and async programming in Rust"));
+        let inp = ScorerInput { result: &r, query: "tokio async runtime", engine_rank: 0 };
+        let full_r = make_result("https://a.com/", Some("Tokio async runtime in Rust"));
+        let full_inp = ScorerInput { result: &full_r, query: "tokio async runtime", engine_rank: 0 };
+        let partial = snippet_relevance::score(&inp);
+        let full = snippet_relevance::score(&full_inp);
+        assert!(
+            partial.delta < full.delta,
+            "partial coverage ({}) must be less than full ({})",
+            partial.delta,
+            full.delta
+        );
+        assert!(partial.delta > 0.0);
+    }
+}
