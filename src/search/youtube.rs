@@ -250,7 +250,11 @@ mod tests {
             author_url: "https://youtube.com/@test".into(),
             thumbnail_url: None,
         };
-        let out = format_youtube_content(&oembed, Some("**[00:00]** Hello"), crate::mode::Mode::Verbose);
+        let out = format_youtube_content(
+            &oembed,
+            Some("**[00:00]** Hello"),
+            crate::mode::Mode::Verbose,
+        );
         assert!(out.starts_with("# Test Video"));
         assert!(out.contains("## Transcript"));
         assert!(out.contains("**[00:00]** Hello"));

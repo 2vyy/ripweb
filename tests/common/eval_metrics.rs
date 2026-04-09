@@ -15,38 +15,70 @@ pub struct EvalMetrics {
 }
 
 pub fn success_at_k(gold_urls: &[String], ranked: &[String], k: usize) -> bool {
-    ranked.iter().take(k).any(|url| gold_urls.iter().any(|g| url_matches(url, g)))
+    ranked
+        .iter()
+        .take(k)
+        .any(|url| gold_urls.iter().any(|g| url_matches(url, g)))
 }
 
 pub fn reciprocal_rank(gold_urls: &[String], ranked: &[String]) -> f64 {
-    ranked.iter().enumerate().find_map(|(i, url)| {
-        if gold_urls.iter().any(|g| url_matches(url, g)) {
-            Some(1.0 / (i + 1) as f64)
-        } else {
-            None
-        }
-    }).unwrap_or(0.0)
+    ranked
+        .iter()
+        .enumerate()
+        .find_map(|(i, url)| {
+            if gold_urls.iter().any(|g| url_matches(url, g)) {
+                Some(1.0 / (i + 1) as f64)
+            } else {
+                None
+            }
+        })
+        .unwrap_or(0.0)
 }
 
-pub fn ndcg_at_k(gold_urls: &[String], gold_priority: &[String], ranked: &[String], k: usize) -> f64 {
-    let dcg: f64 = ranked.iter().take(k).enumerate().map(|(i, url)| {
-        let rel = relevance(url, gold_priority, gold_urls);
-        rel / (i as f64 + 2.0).log2()
-    }).sum();
+pub fn ndcg_at_k(
+    gold_urls: &[String],
+    gold_priority: &[String],
+    ranked: &[String],
+    k: usize,
+) -> f64 {
+    let dcg: f64 = ranked
+        .iter()
+        .take(k)
+        .enumerate()
+        .map(|(i, url)| {
+            let rel = relevance(url, gold_priority, gold_urls);
+            rel / (i as f64 + 2.0).log2()
+        })
+        .sum();
 
-    let mut ideal_rels: Vec<f64> = gold_priority.iter().map(|_| 2.0_f64)
-        .chain(gold_urls.iter().filter(|g| !gold_priority.contains(g)).map(|_| 1.0_f64))
+    let mut ideal_rels: Vec<f64> = gold_priority
+        .iter()
+        .map(|_| 2.0_f64)
+        .chain(
+            gold_urls
+                .iter()
+                .filter(|g| !gold_priority.contains(g))
+                .map(|_| 1.0_f64),
+        )
         .collect();
     ideal_rels.sort_by(|a, b| b.partial_cmp(a).unwrap());
 
-    let idcg: f64 = ideal_rels.iter().take(k).enumerate()
-        .map(|(i, &rel)| rel / (i as f64 + 2.0).log2()).sum();
+    let idcg: f64 = ideal_rels
+        .iter()
+        .take(k)
+        .enumerate()
+        .map(|(i, &rel)| rel / (i as f64 + 2.0).log2())
+        .sum();
 
     if idcg == 0.0 { 0.0 } else { dcg / idcg }
 }
 
 pub fn compute_metrics(queries: &[BenchmarkQuery], traces: &[QueryTrace]) -> EvalMetrics {
-    assert_eq!(queries.len(), traces.len(), "queries and traces must be aligned");
+    assert_eq!(
+        queries.len(),
+        traces.len(),
+        "queries and traces must be aligned"
+    );
     let n = queries.len() as f64;
     let mut s1 = 0.0_f64;
     let mut s3 = 0.0_f64;
@@ -55,9 +87,15 @@ pub fn compute_metrics(queries: &[BenchmarkQuery], traces: &[QueryTrace]) -> Eva
     let mut ndcg_sum = 0.0_f64;
 
     for (q, t) in queries.iter().zip(traces.iter()) {
-        if success_at_k(&q.gold_urls, &t.final_rank, 1) { s1 += 1.0; }
-        if success_at_k(&q.gold_urls, &t.final_rank, 3) { s3 += 1.0; }
-        if success_at_k(&q.gold_urls, &t.final_rank, 5) { s5 += 1.0; }
+        if success_at_k(&q.gold_urls, &t.final_rank, 1) {
+            s1 += 1.0;
+        }
+        if success_at_k(&q.gold_urls, &t.final_rank, 3) {
+            s3 += 1.0;
+        }
+        if success_at_k(&q.gold_urls, &t.final_rank, 5) {
+            s5 += 1.0;
+        }
         mrr_sum += reciprocal_rank(&q.gold_urls, &t.final_rank);
         ndcg_sum += ndcg_at_k(&q.gold_urls, &q.gold_priority, &t.final_rank, 10);
     }
@@ -81,9 +119,13 @@ fn url_matches(candidate: &str, gold: &str) -> bool {
 }
 
 fn relevance(url: &str, gold_priority: &[String], gold_urls: &[String]) -> f64 {
-    if gold_priority.iter().any(|g| url_matches(url, g)) { 2.0 }
-    else if gold_urls.iter().any(|g| url_matches(url, g)) { 1.0 }
-    else { 0.0 }
+    if gold_priority.iter().any(|g| url_matches(url, g)) {
+        2.0
+    } else if gold_urls.iter().any(|g| url_matches(url, g)) {
+        1.0
+    } else {
+        0.0
+    }
 }
 
 #[cfg(test)]
@@ -91,58 +133,114 @@ mod tests {
     use super::*;
     use ripweb::search::{eval_types::SearchResultRecord, trace::QueryTrace};
 
-    fn s(v: &str) -> String { v.to_owned() }
+    fn s(v: &str) -> String {
+        v.to_owned()
+    }
     fn make_result(url: &str) -> SearchResultRecord {
-        SearchResultRecord { url: url.to_owned(), title: "Title".to_owned(), snippet: None }
+        SearchResultRecord {
+            url: url.to_owned(),
+            title: "Title".to_owned(),
+            snippet: None,
+        }
     }
 
     #[test]
     fn url_matches_exact() {
-        assert!(url_matches("https://tokio.rs/tokio/tutorial", "https://tokio.rs/tokio/tutorial"));
+        assert!(url_matches(
+            "https://tokio.rs/tokio/tutorial",
+            "https://tokio.rs/tokio/tutorial"
+        ));
     }
     #[test]
     fn url_matches_trailing_slash_normalised() {
-        assert!(url_matches("https://tokio.rs/tokio/tutorial/", "https://tokio.rs/tokio/tutorial"));
+        assert!(url_matches(
+            "https://tokio.rs/tokio/tutorial/",
+            "https://tokio.rs/tokio/tutorial"
+        ));
     }
     #[test]
     fn url_matches_subpath() {
-        assert!(url_matches("https://tokio.rs/tokio/tutorial/hello_tokio", "https://tokio.rs/tokio/tutorial"));
+        assert!(url_matches(
+            "https://tokio.rs/tokio/tutorial/hello_tokio",
+            "https://tokio.rs/tokio/tutorial"
+        ));
     }
     #[test]
     fn url_matches_with_query_string() {
-        assert!(url_matches("https://tokio.rs/tokio/tutorial?foo=bar", "https://tokio.rs/tokio/tutorial"));
+        assert!(url_matches(
+            "https://tokio.rs/tokio/tutorial?foo=bar",
+            "https://tokio.rs/tokio/tutorial"
+        ));
     }
     #[test]
     fn url_does_not_match_different_host() {
-        assert!(!url_matches("https://other.rs/tokio/tutorial", "https://tokio.rs/tokio/tutorial"));
+        assert!(!url_matches(
+            "https://other.rs/tokio/tutorial",
+            "https://tokio.rs/tokio/tutorial"
+        ));
     }
     #[test]
     fn success_at_1_when_gold_is_first() {
-        assert!(success_at_k(&[s("https://a.example.com")], &[s("https://a.example.com"), s("https://b.example.com")], 1));
+        assert!(success_at_k(
+            &[s("https://a.example.com")],
+            &[s("https://a.example.com"), s("https://b.example.com")],
+            1
+        ));
     }
     #[test]
     fn no_success_at_1_when_gold_is_second() {
-        assert!(!success_at_k(&[s("https://a.example.com")], &[s("https://b.example.com"), s("https://a.example.com")], 1));
+        assert!(!success_at_k(
+            &[s("https://a.example.com")],
+            &[s("https://b.example.com"), s("https://a.example.com")],
+            1
+        ));
     }
     #[test]
     fn success_at_3_when_gold_is_third() {
-        assert!(success_at_k(&[s("https://a.example.com")], &[s("https://b.example.com"), s("https://c.example.com"), s("https://a.example.com")], 3));
+        assert!(success_at_k(
+            &[s("https://a.example.com")],
+            &[
+                s("https://b.example.com"),
+                s("https://c.example.com"),
+                s("https://a.example.com")
+            ],
+            3
+        ));
     }
     #[test]
     fn no_success_when_gold_absent() {
-        assert!(!success_at_k(&[s("https://a.example.com")], &[s("https://b.example.com"), s("https://c.example.com")], 5));
+        assert!(!success_at_k(
+            &[s("https://a.example.com")],
+            &[s("https://b.example.com"), s("https://c.example.com")],
+            5
+        ));
     }
     #[test]
     fn rr_is_1_when_gold_is_rank_1() {
-        assert_eq!(reciprocal_rank(&[s("https://a.example.com")], &[s("https://a.example.com"), s("https://b.example.com")]), 1.0);
+        assert_eq!(
+            reciprocal_rank(
+                &[s("https://a.example.com")],
+                &[s("https://a.example.com"), s("https://b.example.com")]
+            ),
+            1.0
+        );
     }
     #[test]
     fn rr_is_half_when_gold_is_rank_2() {
-        assert_eq!(reciprocal_rank(&[s("https://a.example.com")], &[s("https://b.example.com"), s("https://a.example.com")]), 0.5);
+        assert_eq!(
+            reciprocal_rank(
+                &[s("https://a.example.com")],
+                &[s("https://b.example.com"), s("https://a.example.com")]
+            ),
+            0.5
+        );
     }
     #[test]
     fn rr_is_zero_when_gold_absent() {
-        assert_eq!(reciprocal_rank(&[s("https://a.example.com")], &[s("https://b.example.com")]), 0.0);
+        assert_eq!(
+            reciprocal_rank(&[s("https://a.example.com")], &[s("https://b.example.com")]),
+            0.0
+        );
     }
     #[test]
     fn ndcg_is_1_when_priority_gold_is_rank_1() {
@@ -158,7 +256,10 @@ mod tests {
         let prio = vec![s("https://a.example.com")];
         let ranked = vec![s("https://b.example.com"), s("https://a.example.com")];
         let score = ndcg_at_k(&gold, &prio, &ranked, 10);
-        assert!(score < 1.0 && score > 0.0, "expected 0<score<1, got {score}");
+        assert!(
+            score < 1.0 && score > 0.0,
+            "expected 0<score<1, got {score}"
+        );
     }
     #[test]
     fn ndcg_is_zero_when_gold_absent() {
@@ -176,7 +277,11 @@ mod tests {
             gold_urls: vec![s(gold_url)],
             gold_priority: vec![s(gold_url)],
             negative_urls: vec![],
-            baseline_results: vec![SearchResultRecord { url: s(gold_url), title: s("A"), snippet: None }],
+            baseline_results: vec![SearchResultRecord {
+                url: s(gold_url),
+                title: s("A"),
+                snippet: None,
+            }],
         };
         let trace = QueryTrace::from_engine_results("test", &bq.baseline_results);
         let metrics = compute_metrics(&[bq], &[trace]);

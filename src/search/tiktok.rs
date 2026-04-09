@@ -21,7 +21,10 @@ pub fn tiktok_oembed_url(video_url: &str) -> String {
 }
 
 /// Parse TikTok oEmbed JSON and format as Markdown.
-pub fn parse_tiktok_oembed(json: &str, mode: crate::mode::Mode) -> Result<String, serde_json::Error> {
+pub fn parse_tiktok_oembed(
+    json: &str,
+    mode: crate::mode::Mode,
+) -> Result<String, serde_json::Error> {
     let oembed: TiktokOembed = serde_json::from_str(json)?;
     Ok(format_tiktok(&oembed, mode))
 }

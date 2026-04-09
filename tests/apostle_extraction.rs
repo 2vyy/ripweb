@@ -85,7 +85,11 @@ fn apostle_snapshot_youtube_oembed() {
     let json = include_str!("fixtures/apostles/youtube_oembed.json");
     let oembed =
         ripweb::search::youtube::parse_youtube_oembed(json).expect("YouTube oEmbed parse failed");
-    let md = ripweb::search::youtube::format_youtube_content(&oembed, None, ripweb::mode::Mode::Balanced);
+    let md = ripweb::search::youtube::format_youtube_content(
+        &oembed,
+        None,
+        ripweb::mode::Mode::Balanced,
+    );
     insta::assert_snapshot!(md);
 }
 

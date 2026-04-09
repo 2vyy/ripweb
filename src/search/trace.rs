@@ -67,10 +67,10 @@ mod tests {
             make_result("https://b.example.com"),
         ];
         let trace = QueryTrace::from_engine_results("test query", &results);
-        assert_eq!(trace.final_rank, vec![
-            "https://a.example.com",
-            "https://b.example.com",
-        ]);
+        assert_eq!(
+            trace.final_rank,
+            vec!["https://a.example.com", "https://b.example.com",]
+        );
     }
 
     #[test]
@@ -88,7 +88,10 @@ mod tests {
         let back: QueryTrace = serde_json::from_str(&json).unwrap();
         assert_eq!(back.query, "tokio async");
         assert_eq!(back.final_rank, vec!["https://tokio.rs/tokio/tutorial"]);
-        assert_eq!(back.engine_results[0].url, "https://tokio.rs/tokio/tutorial");
+        assert_eq!(
+            back.engine_results[0].url,
+            "https://tokio.rs/tokio/tutorial"
+        );
         assert_eq!(back.engine_results[0].title, "Title");
         assert_eq!(back.engine_results[0].snippet, None);
         assert!(back.scorer_contributions.is_empty());

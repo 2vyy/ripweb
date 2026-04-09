@@ -16,8 +16,12 @@ pub fn load_benchmark(path: &str) -> Vec<BenchmarkQuery> {
         .enumerate()
         .filter(|(_, line)| !line.trim().is_empty())
         .map(|(i, line)| {
-            serde_json::from_str(line)
-                .unwrap_or_else(|e| panic!("line {} of {path} is not valid BenchmarkQuery: {e}\nContent: {line}", i + 1))
+            serde_json::from_str(line).unwrap_or_else(|e| {
+                panic!(
+                    "line {} of {path} is not valid BenchmarkQuery: {e}\nContent: {line}",
+                    i + 1
+                )
+            })
         })
         .collect()
 }
@@ -40,7 +44,10 @@ mod tests {
         let queries = load_benchmark("tests/fixtures/search/eval/techdocs_bench.jsonl");
         assert_eq!(queries.len(), 5, "techdocs fixture must have 5 entries");
         for q in &queries {
-            assert!(!q.gold_priority.is_empty(), "every entry needs at least one gold_priority URL");
+            assert!(
+                !q.gold_priority.is_empty(),
+                "every entry needs at least one gold_priority URL"
+            );
         }
     }
 }

@@ -1,11 +1,13 @@
 mod common;
-use common::{
-    eval_metrics::compute_metrics,
-    search_eval::load_benchmark,
-};
+use common::{eval_metrics::compute_metrics, search_eval::load_benchmark};
 use ripweb::search::trace::QueryTrace;
 
-fn baseline_traces(fixture_path: &str) -> (Vec<ripweb::search::eval_types::BenchmarkQuery>, Vec<QueryTrace>) {
+fn baseline_traces(
+    fixture_path: &str,
+) -> (
+    Vec<ripweb::search::eval_types::BenchmarkQuery>,
+    Vec<QueryTrace>,
+) {
     let queries = load_benchmark(fixture_path);
     let traces: Vec<QueryTrace> = queries
         .iter()

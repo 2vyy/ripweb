@@ -56,6 +56,14 @@ mod tests {
         assert_eq!(back.query, q.query);
         assert_eq!(back.gold_urls, q.gold_urls);
         assert_eq!(back.baseline_results.len(), 1);
+        assert_eq!(back.intent, q.intent);
+        assert_eq!(back.gold_priority, q.gold_priority);
+        assert_eq!(back.negative_urls, q.negative_urls);
+        assert_eq!(back.baseline_results[0].url, q.baseline_results[0].url);
+        assert_eq!(
+            back.baseline_results[0].snippet,
+            q.baseline_results[0].snippet
+        );
     }
 
     #[test]
@@ -68,6 +76,9 @@ mod tests {
             "baseline_results": []
         }"#;
         let q: BenchmarkQuery = serde_json::from_str(json).unwrap();
-        assert!(q.negative_urls.is_empty(), "negative_urls must default to []");
+        assert!(
+            q.negative_urls.is_empty(),
+            "negative_urls must default to []"
+        );
     }
 }
