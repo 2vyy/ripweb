@@ -26,7 +26,10 @@ pub fn wiki_summary_url(title: &str) -> Result<Url, url::ParseError> {
 }
 
 /// Parse the Wikipedia REST v1 summary JSON response into clean Markdown.
-pub fn parse_wiki_summary(json: &str, mode: crate::mode::Mode) -> Result<String, serde_json::Error> {
+pub fn parse_wiki_summary(
+    json: &str,
+    mode: crate::mode::Mode,
+) -> Result<String, serde_json::Error> {
     let summary: WikiSummary = serde_json::from_str(json)?;
     let mut out = format!("# {}\n\n", summary.title);
     if let Some(desc) = &summary.description {

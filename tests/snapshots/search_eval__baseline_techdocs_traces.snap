@@ -1,0 +1,70 @@
+---
+source: tests/search_eval.rs
+expression: summary
+---
+[
+  {
+    "gold_urls": [
+      "https://docs.rs/axum",
+      "https://github.com/tokio-rs/axum"
+    ],
+    "intent": "official_docs",
+    "query": "axum web framework tutorial rust",
+    "top3": [
+      "https://docs.rs/axum/latest/axum/",
+      "https://github.com/tokio-rs/axum",
+      "https://medium.com/@james_berry/intro-to-axum"
+    ]
+  },
+  {
+    "gold_urls": [
+      "https://doc.rust-lang.org/cargo/reference/workspaces.html"
+    ],
+    "intent": "official_docs",
+    "query": "cargo workspace members Cargo.toml",
+    "top3": [
+      "https://doc.rust-lang.org/cargo/reference/workspaces.html",
+      "https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html",
+      "https://stackoverflow.com/questions/tagged/cargo-workspace"
+    ]
+  },
+  {
+    "gold_urls": [
+      "https://docs.rs/tracing-subscriber",
+      "https://docs.rs/tracing"
+    ],
+    "intent": "official_docs",
+    "query": "tracing subscriber env filter rust",
+    "top3": [
+      "https://docs.rs/tracing-subscriber/latest/tracing_subscriber/",
+      "https://docs.rs/tracing/latest/tracing/",
+      "https://crates.io/crates/tracing-subscriber"
+    ]
+  },
+  {
+    "gold_urls": [
+      "https://docs.rs/rustls",
+      "https://github.com/rustls/rustls"
+    ],
+    "intent": "official_docs",
+    "query": "rustls TLS configuration certificate rust",
+    "top3": [
+      "https://github.com/rustls/rustls",
+      "https://docs.rs/rustls/latest/rustls/",
+      "https://medium.com/@techblog/rustls-intro"
+    ]
+  },
+  {
+    "gold_urls": [
+      "https://docs.rs/hyper",
+      "https://hyper.rs"
+    ],
+    "intent": "official_docs",
+    "query": "hyper http server rust low level",
+    "top3": [
+      "https://hyper.rs/",
+      "https://docs.rs/hyper/latest/hyper/",
+      "https://crates.io/crates/hyper"
+    ]
+  }
+]

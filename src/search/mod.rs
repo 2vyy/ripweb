@@ -7,6 +7,7 @@
 pub mod arxiv;
 pub mod ddg_instant;
 pub mod duckduckgo;
+pub mod eval_types;
 pub mod github;
 pub mod hackernews;
 pub mod marginalia;
@@ -14,6 +15,7 @@ pub mod reddit;
 pub mod searxng;
 pub mod stackoverflow;
 pub mod tiktok;
+pub mod trace;
 pub mod twitter;
 pub mod wikipedia;
 pub mod youtube;

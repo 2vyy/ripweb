@@ -30,3 +30,11 @@ bench:
 # Remove unused dependencies and clean up
 prune:
     cargo machete
+
+# Run search quality evaluation against all benchmark fixtures
+eval-search:
+    cargo test --test search_eval -- --nocapture
+
+# Run search eval in CI mode — fails if snapshots changed unexpectedly
+eval-search-regression:
+    INSTA_UPDATE=unseen cargo test --test search_eval

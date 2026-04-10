@@ -2,7 +2,7 @@
 //!
 //! The `run` module contains the top-level dispatch loop for processing
 //! search queries and platform URLs. It coordinates fetching, retries,
-//! caching, and final output formatting based on verbosity.
+//! caching, and final output formatting based on output mode.
 
 use std::sync::Arc;
 
@@ -328,7 +328,11 @@ pub fn format_generic(text: &str, url: &url::Url, mode: crate::mode::Mode) -> St
         2 => {
             let char_count = text.chars().count();
             let snippet: String = text.chars().take(2000).collect();
-            let truncated = if char_count > 2000 { "... (truncated)" } else { "" };
+            let truncated = if char_count > 2000 {
+                "... (truncated)"
+            } else {
+                ""
+            };
             format!("{delimiter}{snippet}{truncated}")
         }
         _ => format!("{delimiter}{text}"),

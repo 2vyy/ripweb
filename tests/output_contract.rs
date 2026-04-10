@@ -17,7 +17,10 @@ fn compact_mode_generic_emits_delimiter_and_link() {
         "must start with source delimiter, got: {out:?}"
     );
     assert!(out.contains("- [Generic Page](https://example.com/item)"));
-    assert!(!out.contains("some text"), "compact must not include body text");
+    assert!(
+        !out.contains("some text"),
+        "compact must not include body text"
+    );
 }
 
 #[test]
@@ -44,7 +47,10 @@ fn verbose_mode_generic_emits_full_content() {
         out.starts_with("# --- [Source:"),
         "must start with source delimiter"
     );
-    assert!(!out.contains("... (truncated)"), "verbose must not truncate");
+    assert!(
+        !out.contains("... (truncated)"),
+        "verbose must not truncate"
+    );
     assert!(out.contains("Line 1"));
 }
 
@@ -56,7 +62,10 @@ fn source_delimiter_strips_tracking_params() {
         !out.contains("utm_source"),
         "source delimiter must strip tracking params"
     );
-    assert!(out.contains("id=1"), "non-tracking params must be preserved");
+    assert!(
+        out.contains("id=1"),
+        "non-tracking params must be preserved"
+    );
 }
 
 // ── format_reddit ─────────────────────────────────────────────────────────────
@@ -83,7 +92,10 @@ fn balanced_mode_reddit_top_two_comments() {
     let out = format_reddit(&content, Mode::Balanced);
     assert!(out.contains("# Rust is great"));
     assert!(out.contains("Comment 2"));
-    assert!(!out.contains("Comment 3"), "balanced must cap at 2 comments");
+    assert!(
+        !out.contains("Comment 3"),
+        "balanced must cap at 2 comments"
+    );
 }
 
 #[test]
@@ -109,6 +121,7 @@ fn compact_mode_hn_title_only() {
     let out = format_hn(&content, Mode::Compact);
     assert!(out.contains("- [Show HN: Ripweb]"));
     assert!(!out.contains("Check out this tool"));
+<<<<<<< HEAD
 }
 
 #[test]

@@ -186,7 +186,12 @@ async fn fetch_issue_comments(
     serde_json::from_str(&text).map_err(|e| GithubError::Parse(e.to_string()))
 }
 
-fn format_issues_list(owner: &str, repo: &str, issues: &[GithubIssue], _mode: crate::mode::Mode) -> String {
+fn format_issues_list(
+    owner: &str,
+    repo: &str,
+    issues: &[GithubIssue],
+    _mode: crate::mode::Mode,
+) -> String {
     // A broader query that returns multiple issues is always treated close to V1 (List)
     // unless we iterate and fetch their bodies, but the API already gives us bodies.
     let mut out = format!("# Issues for {owner}/{repo}\n\n");
@@ -205,7 +210,11 @@ fn format_issues_list(owner: &str, repo: &str, issues: &[GithubIssue], _mode: cr
     out
 }
 
-pub fn format_issue(issue: &GithubIssue, comments: &[GithubComment], mode: crate::mode::Mode) -> String {
+pub fn format_issue(
+    issue: &GithubIssue,
+    comments: &[GithubComment],
+    mode: crate::mode::Mode,
+) -> String {
     let mut out = String::new();
     let labels = issue
         .labels
