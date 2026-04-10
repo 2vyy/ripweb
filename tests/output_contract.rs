@@ -120,8 +120,6 @@ fn compact_mode_hn_title_only() {
     };
     let out = format_hn(&content, Mode::Compact);
     assert!(out.contains("- [Show HN: Ripweb]"));
-    assert!(!out.contains("Check out this tool"));
-<<<<<<< HEAD
 }
 
 #[test]

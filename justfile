@@ -38,3 +38,7 @@ eval-search:
 # Run search eval in CI mode — fails if snapshots changed unexpectedly
 eval-search-regression:
     INSTA_UPDATE=unseen cargo test --test search_eval
+
+# Run LLM tool-use evaluation benchmarks
+eval model="local-model" url="http://localhost:8080":
+    cargo run --bin eval -- --model {{model}} --api-url {{url}}
