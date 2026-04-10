@@ -134,7 +134,10 @@ fn balanced_mode_hn_top_five_comments() {
     let out = format_hn(&content, Mode::Balanced);
     assert!(out.contains("# Show HN: Ripweb"));
     assert!(out.contains("Comment 5"));
-    assert!(!out.contains("Comment 6"), "balanced must cap at 5 comments");
+    assert!(
+        !out.contains("Comment 6"),
+        "balanced must cap at 5 comments"
+    );
 }
 
 #[test]
@@ -222,12 +225,16 @@ fn compact_mode_github_issue_list_format() {
         title: "Bug".into(),
         body: Some("Description".into()),
         labels: vec![],
-        user: ripweb::search::github::GithubUser { login: "alice".into() },
+        user: ripweb::search::github::GithubUser {
+            login: "alice".into(),
+        },
         html_url: "https://github.com/a/b/issues/1".into(),
     };
     let comments = vec![ripweb::search::github::GithubComment {
         body: Some("Comment 1".into()),
-        user: ripweb::search::github::GithubUser { login: "bob".into() },
+        user: ripweb::search::github::GithubUser {
+            login: "bob".into(),
+        },
     }];
 
     let out = ripweb::search::github::format_issue(&issue, &comments, Mode::Compact);
@@ -242,12 +249,16 @@ fn balanced_mode_github_issue_op_only() {
         title: "Bug".into(),
         body: Some("Description".into()),
         labels: vec![],
-        user: ripweb::search::github::GithubUser { login: "alice".into() },
+        user: ripweb::search::github::GithubUser {
+            login: "alice".into(),
+        },
         html_url: "https://github.com/a/b/issues/1".into(),
     };
     let comments = vec![ripweb::search::github::GithubComment {
         body: Some("Comment 1".into()),
-        user: ripweb::search::github::GithubUser { login: "bob".into() },
+        user: ripweb::search::github::GithubUser {
+            login: "bob".into(),
+        },
     }];
 
     let out = ripweb::search::github::format_issue(&issue, &comments, Mode::Balanced);
@@ -262,12 +273,16 @@ fn verbose_mode_github_issue_with_comments() {
         title: "Bug".into(),
         body: Some("Description".into()),
         labels: vec![],
-        user: ripweb::search::github::GithubUser { login: "alice".into() },
+        user: ripweb::search::github::GithubUser {
+            login: "alice".into(),
+        },
         html_url: "https://github.com/a/b/issues/1".into(),
     };
     let comments = vec![ripweb::search::github::GithubComment {
         body: Some("Comment 1".into()),
-        user: ripweb::search::github::GithubUser { login: "bob".into() },
+        user: ripweb::search::github::GithubUser {
+            login: "bob".into(),
+        },
     }];
 
     let out = ripweb::search::github::format_issue(&issue, &comments, Mode::Verbose);
