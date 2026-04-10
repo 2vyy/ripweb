@@ -3,6 +3,8 @@
 //! Uses the GitHub REST API to fetch issues, pull requests, and
 //! comments. Falls back to raw content for README files.
 
+use std::fmt::Write;
+
 use serde::Deserialize;
 use url::Url;
 
@@ -202,10 +204,11 @@ fn format_issues_list(
             .map(|l| l.name.as_str())
             .collect::<Vec<_>>()
             .join(", ");
-        out.push_str(&format!(
-            "- [#{}] {} ({}) [Labels: {}]\n",
+        let _ = writeln!(
+            out,
+            "- [#{}] {} ({}) [Labels: {}]",
             issue.number, issue.title, issue.html_url, labels
-        ));
+        );
     }
     out
 }
@@ -226,33 +229,36 @@ pub fn format_issue(
     match mode.density_tier() {
         1 => {
             // V1: List of Issue Titles + Numbers + Labels.
-            out.push_str(&format!(
-                "- [#{}] {} [Labels: {}]\n",
+            let _ = writeln!(
+                out,
+                "- [#{}] {} [Labels: {}]",
                 issue.number, issue.title, labels
-            ));
+            );
         }
         2 => {
             // V2: Issue Title + OP's Description.
-            out.push_str(&format!(
+            let _ = write!(
+                out,
                 "# [#{}] {}\n**Labels**: {}\n**Author**: {}\n\n",
                 issue.number, issue.title, labels, issue.user.login
-            ));
+            );
             if let Some(body) = &issue.body {
                 out.push_str(body);
             }
         }
         _ => {
             // V3: Issue Title + OP's Description + All Comments.
-            out.push_str(&format!(
+            let _ = write!(
+                out,
                 "# [#{}] {}\n**Labels**: {}\n**Author**: {}\n\n",
                 issue.number, issue.title, labels, issue.user.login
-            ));
+            );
             if let Some(body) = &issue.body {
                 out.push_str(body);
             }
             out.push_str("\n\n## Comments\n\n");
             for comment in comments {
-                out.push_str(&format!("### {}\n", comment.user.login));
+                let _ = writeln!(out, "### {}", comment.user.login);
                 if let Some(b) = &comment.body {
                     out.push_str(b);
                 }

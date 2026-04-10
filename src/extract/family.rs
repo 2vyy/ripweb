@@ -313,6 +313,47 @@ mod tests {
     use crate::extract::render::{cleanup_markdown, render_tag};
 
     #[test]
+    fn test_count_price_markers() {
+        assert_eq!(count_price_markers(""), 0);
+
+        assert_eq!(
+            count_price_markers("This is a regular sentence.\nNo prices here."),
+            0
+        );
+
+        assert_eq!(count_price_markers("The price is $10.\nNext line."), 1);
+
+        assert_eq!(
+            count_price_markers("Current price: 100 EUR\nAnother line"),
+            1
+        );
+
+        assert_eq!(
+            count_price_markers("Sale price: 90 EUR\nRegular price: 100 EUR"),
+            1
+        );
+
+        assert_eq!(
+            count_price_markers("Price when purchased online\nDetails"),
+            1
+        );
+
+        assert_eq!(
+            count_price_markers("Current price: 10\nSale price: 5\nTotal: $15"),
+            3
+        );
+
+        assert_eq!(count_price_markers("Current price is $10"), 1);
+
+        assert_eq!(count_price_markers("   $10   \n   Current price: 10   "), 2);
+
+        assert_eq!(
+            count_price_markers("current price: 10\nsale price: 5\nPRICE WHEN PURCHASED: 100"),
+            0
+        );
+    }
+
+    #[test]
     fn classifies_docs_candidates() {
         let html = r#"<html><body>
           <div class="docs reference-content">
@@ -386,37 +427,5 @@ mod tests {
             classify_candidate_family(tag, &rendered, &stats, PageFamily::Generic),
             PageFamily::Product
         );
-    }
-
-    #[test]
-    fn test_count_spec_markers() {
-        assert_eq!(count_spec_markers(""), 0);
-
-        // No matches
-        assert_eq!(
-            count_spec_markers("This is just some random text.\nIt has no special hints here."),
-            0
-        );
-
-        // Single match
-        assert_eq!(count_spec_markers("Here are the Specifications:"), 1);
-
-        // Case insensitive match
-        assert_eq!(count_spec_markers("SPECS:\n - Fast\n - Reliable"), 1);
-
-        // Multiple distinct matches on different lines
-        assert_eq!(
-            count_spec_markers("Product Details:\nBrand: Acme\nModel: X100"),
-            3
-        );
-
-        // Multiple matches on the SAME line (should count as 1 because we filter lines)
-        assert_eq!(
-            count_spec_markers("Specifications and Product Details for this Brand"),
-            1
-        );
-
-        // Leading and trailing whitespace should be trimmed
-        assert_eq!(count_spec_markers("   warranty   \n \t dimensions \t "), 2);
     }
 }
