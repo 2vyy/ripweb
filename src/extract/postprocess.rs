@@ -82,12 +82,14 @@ fn post_process_forum(dom: &tl::VDom) -> String {
     out.push_str("\n\n---\n\n## Answers\n\n");
 
     for post in posts {
-        let meta = if post.is_accepted {
-            format!("### [Score: {}] (Accepted Answer)\n\n", post.score)
+        if post.is_accepted {
+            let _ = std::fmt::write(
+                &mut out,
+                format_args!("### [Score: {}] (Accepted Answer)\n\n", post.score),
+            );
         } else {
-            format!("### [Score: {}]\n\n", post.score)
-        };
-        out.push_str(&meta);
+            let _ = std::fmt::write(&mut out, format_args!("### [Score: {}]\n\n", post.score));
+        }
         out.push_str(&post.content);
         out.push_str("\n\n");
     }

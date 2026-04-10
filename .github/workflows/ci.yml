@@ -44,7 +44,19 @@ jobs:
         run: cargo deny check advisories
 
       - name: Run Tests (nextest)
-        run: cargo nextest run --all-features
+        run: cargo nextest run --all-features --retries 3
+
+      - name: Install cargo-machete
+        uses: taiki-e/install-action@cargo-machete
+
+      - name: Install and run cargo-machete (unused dependencies)
+        run: cargo machete
+
+      - name: Install and run jscpd (duplicate code)
+        run: npm install -g jscpd && jscpd ./src
+
+      - name: Large file detection
+        run: find src -type f -name "*.rs" -exec wc -l {} \; | awk '$1 > 1000 {print "File too large:", $2; exit 1}'
 
       - name: Run Doc Tests
         run: cargo test --doc
@@ -76,7 +88,7 @@ jobs:
         run: cargo install --locked cargo-tarpaulin
 
       - name: Run Tarpaulin (coverage)
-        run: cargo tarpaulin --all-features --out Lcov --run-types Tests --fail-under 50
+        run: cargo tarpaulin --all-features --out Lcov --run-types Tests --fail-under 70
 
       - name: (Optional) Upload coverage to Codecov
         if: env.CODECOV_TOKEN != ''

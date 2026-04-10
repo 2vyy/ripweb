@@ -1,5 +1,7 @@
 # ripweb
 
+[![codecov](https://codecov.io/gh/2vyy/ripweb/graph/badge.svg)](https://codecov.io/gh/2vyy/ripweb)
+
 `ripweb` is a high-efficiency, privacy-respecting Unix pipeline for harvesting web content into structure-preserving Markdown for LLM context.
 
 It prioritizes native Markdown and keyless structured APIs (Wikipedia, StackOverflow, ArXiv) over raw HTML scraping to ensure the highest possible signal-to-noise ratio.
