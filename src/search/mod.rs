@@ -54,7 +54,9 @@ pub async fn search_query(
             searxng::search(client, searxng_url, query, limit).await
         }
         SearchEngine::Marginalia => marginalia::search(client, query, limit).await,
-        SearchEngine::FanOut => fan_out_search(client, query, limit).await,
+        SearchEngine::FanOut => {
+            Err("FanOut engine must be dispatched via fan_out_search, not search_query".into())
+        }
     }
 }
 
