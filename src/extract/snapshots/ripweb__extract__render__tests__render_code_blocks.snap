@@ -1,0 +1,7 @@
+---
+source: src/extract/render.rs
+expression: render_str(html)
+---
+```rust
+fn main() { println!("Hello"); }
+```
