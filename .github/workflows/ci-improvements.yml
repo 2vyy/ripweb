@@ -9,6 +9,7 @@ jobs:
         uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: stable
+          components: clippy, rustfmt
       - name: Run tests (placeholder for coverage)
         run: cargo test --verbose
       - name: Note
