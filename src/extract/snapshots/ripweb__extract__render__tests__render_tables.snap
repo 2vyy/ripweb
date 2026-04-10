@@ -1,0 +1,6 @@
+---
+source: src/extract/render.rs
+expression: render_str(html)
+---
+| Header 1 | Header 2 |
+| Data 1 | Data 2 |

@@ -1,0 +1,5 @@
+---
+source: src/extract/render.rs
+expression: render_str(html)
+---
+[Link](https://example.com/)[Image: Alt text][Tracking Link](https://tracking.com/)
