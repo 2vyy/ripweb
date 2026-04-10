@@ -54,6 +54,8 @@ fn verbose_mode_generic_emits_full_content() {
     assert!(out.contains("Line 1"));
 }
 
+// ── format_reddit ─────────────────────────────────────────────────────────────
+
 #[test]
 fn source_delimiter_strips_tracking_params() {
     let url = Url::parse("https://example.com/item?utm_source=test&id=1").unwrap();
