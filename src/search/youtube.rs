@@ -167,6 +167,8 @@ pub struct YoutubeOembed {
     pub title: String,
     pub author_name: String,
     pub author_url: String,
+    #[allow(dead_code)]
+    pub thumbnail_url: Option<String>,
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -246,6 +248,7 @@ mod tests {
             title: "Test Video".into(),
             author_name: "Test Channel".into(),
             author_url: "https://youtube.com/@test".into(),
+            thumbnail_url: None,
         };
         let out = format_youtube_content(
             &oembed,
@@ -263,6 +266,7 @@ mod tests {
             title: "No Captions".into(),
             author_name: "Channel".into(),
             author_url: "https://youtube.com/@c".into(),
+            thumbnail_url: None,
         };
         let out = format_youtube_content(&oembed, None, crate::mode::Mode::Verbose);
         assert!(!out.contains("## Transcript"));
