@@ -99,3 +99,21 @@ pub fn should_strip_subtree(tag: &tl::HTMLTag) -> bool {
 
     NEGATIVE_HINTS.iter().any(|hint| hint_text.contains(hint))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tag_attribute() {
+        let html = r#"<div id="my-id" class="my-class" empty="" no-value></div>"#;
+        let dom = tl::parse(html, tl::ParserOptions::default()).unwrap();
+        let tag = dom.nodes()[0].as_tag().unwrap();
+
+        assert_eq!(tag_attribute(tag, "id").as_deref(), Some("my-id"));
+        assert_eq!(tag_attribute(tag, "class").as_deref(), Some("my-class"));
+        assert_eq!(tag_attribute(tag, "empty").as_deref(), Some(""));
+        assert_eq!(tag_attribute(tag, "no-value").as_deref(), None);
+        assert_eq!(tag_attribute(tag, "non-existent").as_deref(), None);
+    }
+}
