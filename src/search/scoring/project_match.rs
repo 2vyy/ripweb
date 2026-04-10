@@ -128,13 +128,20 @@ mod tests {
     #[test]
     fn short_words_are_excluded() {
         let tokens = extract_project_tokens("use get run");
-        assert!(tokens.is_empty(), "words shorter than 4 chars must be excluded");
+        assert!(
+            tokens.is_empty(),
+            "words shorter than 4 chars must be excluded"
+        );
     }
 
     #[test]
     fn common_words_are_excluded() {
         let tokens = extract_project_tokens("rust async await trait");
-        assert!(tokens.is_empty(), "common words must be excluded, got {:?}", tokens);
+        assert!(
+            tokens.is_empty(),
+            "common words must be excluded, got {:?}",
+            tokens
+        );
     }
 
     #[test]

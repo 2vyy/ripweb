@@ -26,9 +26,7 @@ pub fn score_for_occurrence(previous_occurrences: usize) -> ScorerContribution {
         ScorerContribution {
             scorer: "domain_diversity".to_owned(),
             delta: penalty,
-            reason: format!(
-                "domain already seen {previous_occurrences} time(s) in engine results"
-            ),
+            reason: format!("domain already seen {previous_occurrences} time(s) in engine results"),
         }
     }
 }

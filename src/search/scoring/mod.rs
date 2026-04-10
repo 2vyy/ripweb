@@ -56,7 +56,10 @@ mod tests {
 
     #[test]
     fn extract_host_returns_lowercase_hostname() {
-        assert_eq!(extract_host("https://Docs.RS/tokio/latest/tokio/"), "docs.rs");
+        assert_eq!(
+            extract_host("https://Docs.RS/tokio/latest/tokio/"),
+            "docs.rs"
+        );
     }
 
     #[test]

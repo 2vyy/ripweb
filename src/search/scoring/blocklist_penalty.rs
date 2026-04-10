@@ -13,11 +13,7 @@ use crate::search::trace::ScorerContribution;
 pub fn score(input: &ScorerInput, blocklist: &BlocklistConfig) -> ScorerContribution {
     let host = extract_host(input.result.url.as_str());
 
-    if blocklist
-        .domains
-        .iter()
-        .any(|d| host_matches(&host, d))
-    {
+    if blocklist.domains.iter().any(|d| host_matches(&host, d)) {
         ScorerContribution {
             scorer: "blocklist_penalty".to_owned(),
             delta: -5.0,
