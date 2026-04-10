@@ -18,6 +18,8 @@ pub enum SearchEngine {
     Searxng,
     /// Marginalia indie/non-SEO web search (public demo key, no config)
     Marginalia,
+    /// Fan-out: query DDG + Marginalia in parallel, fuse with RRF
+    FanOut,
 }
 
 #[derive(Parser, Debug)]
