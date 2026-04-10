@@ -4,13 +4,7 @@ version = "0.1.0"
 edition = "2024"
 license = "MIT"
 
-[[bench]]
-name = "minify"
-harness = false
 
-[[bench]]
-name = "token_efficiency"
-harness = false
 
 [dependencies]
 # Async runtime
