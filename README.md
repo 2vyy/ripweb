@@ -4,6 +4,14 @@
 
 It prioritizes native Markdown and keyless structured APIs (Wikipedia, StackOverflow, ArXiv) over raw HTML scraping to ensure the highest possible signal-to-noise ratio.
 
+## `ripweb` is not a:
+- Headless browser
+- Playwright wrapper
+- Managed cloud service with pricing and API keys
+- Middle-man proxy
+- Captcha solver
+- LLM-powered search engine
+
 ## Core Flow
 
 ```text
@@ -55,7 +63,6 @@ ripweb/
 - **Extraction Engine**: Heuristic scoring and rendering of generic HTML into Markdown.
 - **Post-Processor**: Re-ranks forum results and cleans document sidebars.
 
----
 
 ## Key Features
 
@@ -74,3 +81,9 @@ For deep dives into the architecture and development, see the [Developer Wiki](d
 - [Product Spec](docs/PRODUCT_SPEC.md) — CLI flags, routing logic, and architecture.
 - [Testing & Evaluation](docs/TESTING.md) — Frozen corpus and bulk extraction reporting.
 - [Current Priorities](docs/CURRENT_PRIORITIES.md) — Roadmap and next steps.
+
+## Inspirations & Related Projects
+- [Camofox Browser](https://github.com/jo-inc/camofox-browser): Anti-detection browser server for AI agents, powered by Camoufox
+- [RTK](https://github.com/rtk-ai/rtk): High-performance CLI proxy that reduces LLM token consumption by 60-90%
+- [Ripgrep](https://github.com/BurntSushi/ripgrep): Line-oriented search tool that recursively searches the current directory for a regex pattern
+- [Markitdown](https://github.com/microsoft/markitdown): Lightweight Python utility for converting various files to Markdown for use with LLMs and related text analysis pipelines. 

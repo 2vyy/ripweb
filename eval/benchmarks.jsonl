@@ -1,0 +1,3 @@
+{"id": "signal-axum-ver", "category": "signal", "question": "What is the latest stable version of the Axum web framework?", "ground_truth": "0.7.9"}
+{"id": "bloat-axum-history", "category": "bloat", "question": "Find the last 50 release versions of Axum on crates.io and list them chronologically. If they exceed the context, summarize the most significant versions.", "ground_truth": "List of ~50 versions starting from 0.1"}
+{"id": "complex-search", "category": "complex", "question": "Compare the performance benchmarks of the 'Tokyo' vs 'Axum' web frameworks mentioned in their official GitHub READMEs or recent discussions.", "ground_truth": "Comparison based on provided context"}
