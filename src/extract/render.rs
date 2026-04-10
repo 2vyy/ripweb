@@ -321,7 +321,13 @@ fn render_table(tag: &tl::HTMLTag, parser: &tl::Parser) -> String {
     let mut out = String::from("\n\n");
     for row in rows {
         out.push_str("| ");
-        out.push_str(&row.join(" | "));
+        if let Some((first, rest)) = row.split_first() {
+            out.push_str(first);
+            for cell in rest {
+                out.push_str(" | ");
+                out.push_str(cell);
+            }
+        }
         out.push_str(" |\n");
     }
     out.push('\n');
