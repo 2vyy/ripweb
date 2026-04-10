@@ -27,8 +27,7 @@ fn docs_rs_ranks_above_medium_com_for_same_query() {
     let scored = score_results(results, "tokio async runtime");
     // docs.rs must rank first regardless of its position in input
     assert_eq!(
-        scored[0].result.url,
-        "https://docs.rs/tokio/latest/tokio/",
+        scored[0].result.url, "https://docs.rs/tokio/latest/tokio/",
         "docs.rs must rank above medium.com"
     );
 }
@@ -90,13 +89,21 @@ fn duplicate_domain_results_are_penalised() {
         .filter(|s| s.result.url.contains("medium.com"))
         .map(|s| s.score)
         .collect();
-    assert_eq!(medium_scores.len(), 2, "both medium.com results must be present");
+    assert_eq!(
+        medium_scores.len(),
+        2,
+        "both medium.com results must be present"
+    );
     // The second medium.com result must score lower than the first
     // (domain diversity penalty applies)
     assert!(
         medium_scores[0] > medium_scores[1]
-            || scored.iter().position(|s| s.result.url.contains("medium.com/@a"))
-                > scored.iter().position(|s| s.result.url.contains("medium.com/@b")),
+            || scored
+                .iter()
+                .position(|s| s.result.url.contains("medium.com/@a"))
+                > scored
+                    .iter()
+                    .position(|s| s.result.url.contains("medium.com/@b")),
         "second medium.com result must be penalised relative to first"
     );
 }
