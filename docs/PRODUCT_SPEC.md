@@ -10,7 +10,7 @@ This document defines what `ripweb` is, what it accepts as input, how it routes 
 
 - **Network-Bound Reality.** CPU parsing time is negligible; performance focuses on concurrency, caching, and connection pooling.
 - **Bot-Bypass.** MASQ browser impersonation avoids blocks.
-- **Verbosity Modulated.** Information is scaled from "Nucleus" (V1) to "Full Context" (V3) to manage token windows.
+- **Mode Modulated.** Information density is scaled via modes from "Nucleus" (Tier 1) to "Full Context" (Tier 3) to manage token windows.
 
 ---
 
@@ -32,13 +32,13 @@ Input is classified as a Search Query or a URL.
 
 ---
 
-## 3. Output Verbosity (1-3)
+## 3. Output Modes and Density Tiers (1-3)
 
-`ripweb` uses a unified `verbosity` scale instead of fixed output modes. See [OUTPUT_CONTRACT.md](OUTPUT_CONTRACT.md) for full density requirements.
+`ripweb` uses output modes that map to underlying density tiers (1-3). See [OUTPUT_CONTRACT.md](OUTPUT_CONTRACT.md) for full density requirements.
 
-1. **V1 (Nucleus)** — Titles and links only. No prose.
-2. **V2 (Signal)** — Headlines, summaries, and snippets (capped prose).
-3. **V3 (Full Context)** — Exhaustive details, all comments, and full transcripts.
+- **Tier 1 (Nucleus)** (`omega-compact`, `compact`) — Titles and links only. No prose.
+- **Tier 2 (Signal)** (`balanced`, `detailed`) — Headlines, summaries, and snippets (capped prose). (Default)
+- **Tier 3 (Full Context)** (`verbose`, `omega-verbose`, `aggressive`) — Exhaustive details, all comments, and full transcripts.
 
 ---
 
@@ -48,10 +48,10 @@ Input is classified as a Search Query or a URL.
 |---|---|
 | `-u <url>` | Treat input explicitly as a URL |
 | `-q <query>` | Treat input explicitly as a search query |
-| `--verbosity <n>` | Output density (1-3, default: 2) |
-| `--limit <n>` | Number of search results (default: 10) |
+| `--mode <mode>` | Output mode controlling information density (default: `balanced`) |
 | `--max-depth <n>` | Recursive crawl depth (default: 1) |
-| `--max-pages <n>` | Global page budget (default: 10) |
+| `--max-pages <n>` | Global page budget / max search results (default: 10) |
+| `--allow-cloud` | Allow pushing data through a cloud extraction parser (like Jina) |
 | `--stat` | Dry-run: count tokens and payload size |
 | `-c` / `--copy` | Copy output to clipboard |
 | `--clean-cache` | Delete local cache directory |

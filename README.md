@@ -66,7 +66,7 @@ ripweb/
 
 ## Key Features
 
-- **Verbosity-Driven Density**: Modulate output from minimalist links (V1) to full context with transcripts and Jina-reader rehydration (V3).
+- **Mode-Driven Density**: Modulate output from minimalist links (omega-compact) to full context with transcripts and Jina-reader rehydration (aggressive).
 - **Smart Probing**: Automatically detects `.md` suffixes and `llms.txt` indexes to avoid expensive HTML scraping.
 - **Markdown-First**: Heuristic-based generic extraction that preserves semantic structure (tables, code blocks, lists).
 - **Universal Fallback**: Integrated `r.jina.ai` proxy for JS-heavy or complex pages at high verbosity.

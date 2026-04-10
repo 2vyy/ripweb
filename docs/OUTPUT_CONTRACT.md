@@ -1,6 +1,6 @@
 # Output Contract
 
-This document defines exactly what `ripweb` guarantees to emit based on the selected **Verbosity Level**. It is the source of truth for extraction, rendering, tests, and benchmarks.
+This document defines exactly what `ripweb` guarantees to emit based on the selected **Output Mode** and its corresponding **Density Tier**. It is the source of truth for extraction, rendering, tests, and benchmarks.
 
 ---
 
@@ -8,15 +8,17 @@ This document defines exactly what `ripweb` guarantees to emit based on the sele
 
 `ripweb` modulates information density to balance **context window usage** against **detail requirements**.
 
-- **V1 (Nucleus)**: High-speed discovery. Minimalist, list-based output for broad scanning.
-- **V2 (Signal)**: Standard research. Balanced snippets, summaries, and capped prose.
-- **V3 (Full Context)**: Exhaustive detail. Full structured content, transcripts, and comments.
+The CLI provides 7 modes that map into 3 underlying Density Tiers:
+
+- **Tier 1 (Nucleus)**: High-speed discovery. Minimalist, list-based output for broad scanning. Modes: `omega-compact`, `compact`.
+- **Tier 2 (Signal)**: Standard research. Balanced snippets, summaries, and capped prose. Modes: `balanced`, `detailed`.
+- **Tier 3 (Full Context)**: Exhaustive detail. Full structured content, transcripts, and comments. Modes: `verbose`, `omega-verbose`, `aggressive`.
 
 ---
 
-## 2. Verbosity Levels
+## 2. Density Tiers (Verbosity Levels)
 
-### Level 1: Nucleus
+### Tier 1: Nucleus
 **Goal**: Identify sources and core headlines with near-zero token overhead.
 
 - **Generic Web**: `- [Page Title](URL)` only.
@@ -28,7 +30,7 @@ This document defines exactly what `ripweb` guarantees to emit based on the sele
     - **YouTube**: Basic Meta (Title/Author/Duration).
     - **StackOverflow**: Question Title + Link.
 
-### Level 2: Signal (Default)
+### Tier 2: Signal (Default)
 **Goal**: Understand the value of a source via snippets and primary summaries.
 
 - **Generic Web**: Title + URL + first ~2000 characters of extracted text.
@@ -40,7 +42,7 @@ This document defines exactly what `ripweb` guarantees to emit based on the sele
     - **YouTube**: Basic Meta + Video Description.
     - **StackOverflow**: Question Title + Highest Voted Answer.
 
-### Level 3: Full Context
+### Tier 3: Full Context
 **Goal**: Comprehensive data retrieval for deep troubleshooting or analysis.
 
 - **Generic Web**: Full rehydrated Markdown (forced via **Jina Reader** proxy).
@@ -70,7 +72,7 @@ Every document/page in a multi-page crawl or search is separated with a source d
 
 ## 4. Element Contract (General)
 
-Regardless of verbosity, when prose is emitted, it follows these rules:
+Regardless of output mode, when prose is emitted, it follows these rules:
 
 ### Headings
 - `h1` → `#`, `h2` → `##`, down to `h6`.
@@ -105,5 +107,5 @@ Regardless of verbosity, when prose is emitted, it follows these rules:
 
 Extraction changes are judged on:
 1. **Structural Fidelity**: Headings, lists, and code blocks must remain valid Markdown.
-2. **Signal Retention**: Key information for the given verbosity level must be present.
+2. **Signal Retention**: Key information for the given density tier must be present.
 3. **Noise Removal**: Boilerplate must be cleanly stripped.
