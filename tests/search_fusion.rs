@@ -80,3 +80,42 @@ fn fan_out_engine_variant_exists() {
     let engine = SearchEngine::FanOut;
     assert!(format!("{engine:?}").contains("FanOut"));
 }
+
+#[test]
+fn benchmark_query_supplemental_results_defaults_to_empty() {
+    let json = r#"{
+        "query": "foo",
+        "intent": "general_technical",
+        "gold_urls": [],
+        "gold_priority": [],
+        "baseline_results": []
+    }"#;
+    let q: ripweb::search::eval_types::BenchmarkQuery = serde_json::from_str(json).unwrap();
+    assert!(
+        q.supplemental_results.is_empty(),
+        "supplemental_results must default to empty map"
+    );
+}
+
+#[test]
+fn benchmark_query_supplemental_results_roundtrips() {
+    let json = r#"{
+        "query": "foo",
+        "intent": "general_technical",
+        "gold_urls": [],
+        "gold_priority": [],
+        "baseline_results": [],
+        "supplemental_results": {
+            "marginalia": [
+                {"url": "https://example.com", "title": "Example", "snippet": null}
+            ]
+        }
+    }"#;
+    let q: ripweb::search::eval_types::BenchmarkQuery = serde_json::from_str(json).unwrap();
+    assert!(q.supplemental_results.contains_key("marginalia"));
+    assert_eq!(q.supplemental_results["marginalia"].len(), 1);
+    assert_eq!(
+        q.supplemental_results["marginalia"][0].url,
+        "https://example.com"
+    );
+}
