@@ -282,6 +282,7 @@ mod tests {
                 title: s("A"),
                 snippet: None,
             }],
+            supplemental_results: std::collections::HashMap::new(),
         };
         let trace = QueryTrace::from_engine_results("test", &bq.baseline_results);
         let metrics = compute_metrics(&[bq], &[trace]);
@@ -299,6 +300,7 @@ mod tests {
             gold_priority: vec![s("https://a.example.com")],
             negative_urls: vec![],
             baseline_results: vec![make_result("https://b.example.com")],
+            supplemental_results: std::collections::HashMap::new(),
         };
         let trace = QueryTrace::from_engine_results("test", &bq.baseline_results);
         let metrics = compute_metrics(&[bq], &[trace]);

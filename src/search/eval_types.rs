@@ -23,6 +23,11 @@ pub struct BenchmarkQuery {
     /// Pre-recorded baseline search results for deterministic evaluation.
     /// Embedded in the fixture so no live network is needed.
     pub baseline_results: Vec<SearchResultRecord>,
+    /// Per-engine supplemental results for multi-engine eval (fan-out).
+    /// Key is engine name ("marginalia", "ddg", etc.).
+    /// Defaults to empty map when absent from fixture JSON.
+    #[serde(default)]
+    pub supplemental_results: std::collections::HashMap<String, Vec<SearchResultRecord>>,
 }
 
 /// A single search result, used both in fixtures and in `QueryTrace`.
@@ -50,6 +55,7 @@ mod tests {
                 title: "Tutorial | Tokio".to_owned(),
                 snippet: Some("Welcome to Tokio.".to_owned()),
             }],
+            supplemental_results: std::collections::HashMap::new(),
         };
         let json = serde_json::to_string(&q).unwrap();
         let back: BenchmarkQuery = serde_json::from_str(&json).unwrap();
