@@ -1,8 +1,7 @@
-//! Extraction Configuration
+//! Extraction and Search Configuration
 //!
-//! Contains data model and logic for domain-specific extraction rules,
-//! such as "Family" hints (Docs, Forum, etc.) and CSS selectors for
-//! common site layouts.
+//! Loads `config/ripweb.toml` (project-local) or the XDG config path.
+//! All config types implement `Default` so no config file is required.
 
 use directories::ProjectDirs;
 use serde::Deserialize;
@@ -17,7 +16,11 @@ static CONFIG: OnceLock<RipwebConfig> = OnceLock::new();
 pub struct RipwebConfig {
     #[serde(default)]
     pub extract: ExtractConfig,
+    #[serde(default)]
+    pub search: SearchConfig,
 }
+
+// ── Extract config (unchanged) ────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ExtractConfig {
@@ -48,6 +51,142 @@ pub struct SuffixRule {
 fn default_family() -> String {
     "generic".to_owned()
 }
+
+// ── Search config (new) ───────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct SearchConfig {
+    #[serde(default)]
+    pub trust: TrustConfig,
+    #[serde(default)]
+    pub blocklist: BlocklistConfig,
+    #[serde(default)]
+    pub weights: ScoringWeights,
+}
+
+/// Domain trust tiers. Domains in `high` get a strong score boost;
+/// domains in `medium` get a small boost; domains in `low` get a small penalty.
+#[derive(Debug, Clone, Deserialize)]
+pub struct TrustConfig {
+    #[serde(default = "default_high_trust")]
+    pub high: Vec<String>,
+    #[serde(default = "default_medium_trust")]
+    pub medium: Vec<String>,
+    #[serde(default)]
+    pub low: Vec<String>,
+}
+
+impl Default for TrustConfig {
+    fn default() -> Self {
+        Self {
+            high: default_high_trust(),
+            medium: default_medium_trust(),
+            low: Vec::new(),
+        }
+    }
+}
+
+fn default_high_trust() -> Vec<String> {
+    [
+        "docs.rs",
+        "doc.rust-lang.org",
+        "crates.io",
+        "github.com",
+        "pypi.org",
+        "npmjs.com",
+        "pkg.go.dev",
+        "developer.mozilla.org",
+        "developer.apple.com",
+        "docs.python.org",
+        "cppreference.com",
+        "rust-lang.org",
+        "golang.org",
+        "python.org",
+        "nodejs.org",
+        "kotlinlang.org",
+        "swift.org",
+        "tokio.rs",
+        "serde.rs",
+        "hyper.rs",
+        "clap.rs",
+    ]
+    .iter()
+    .map(|s| s.to_string())
+    .collect()
+}
+
+fn default_medium_trust() -> Vec<String> {
+    [
+        "stackoverflow.com",
+        "reddit.com",
+        "news.ycombinator.com",
+        "unix.stackexchange.com",
+        "superuser.com",
+        "serverfault.com",
+    ]
+    .iter()
+    .map(|s| s.to_string())
+    .collect()
+}
+
+/// Domains and categories that receive a hard score penalty.
+#[derive(Debug, Clone, Deserialize)]
+pub struct BlocklistConfig {
+    /// Exact domain matches (and subdomains) to penalize heavily.
+    #[serde(default = "default_blocklist_domains")]
+    pub domains: Vec<String>,
+}
+
+impl Default for BlocklistConfig {
+    fn default() -> Self {
+        Self {
+            domains: default_blocklist_domains(),
+        }
+    }
+}
+
+fn default_blocklist_domains() -> Vec<String> {
+    [
+        "w3schools.com",
+        "geeksforgeeks.org",
+        "tutorialspoint.com",
+        "javatpoint.com",
+        "programiz.com",
+    ]
+    .iter()
+    .map(|s| s.to_string())
+    .collect()
+}
+
+/// Per-scorer multiplicative weights.
+/// Each scorer returns a raw delta; the weight scales it before summing.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ScoringWeights {
+    /// Weight applied to the domain trust scorer's delta.
+    pub domain_trust: f64,
+    /// Weight applied to the URL pattern scorer's delta.
+    pub url_pattern: f64,
+    /// Weight applied to the project match scorer's delta.
+    pub project_match: f64,
+    /// Weight applied to the snippet relevance scorer's delta.
+    pub snippet_relevance: f64,
+    /// Weight applied to the domain diversity scorer's delta.
+    pub domain_diversity: f64,
+}
+
+impl Default for ScoringWeights {
+    fn default() -> Self {
+        Self {
+            domain_trust: 1.0,
+            url_pattern: 0.8,
+            project_match: 1.2,
+            snippet_relevance: 0.6,
+            domain_diversity: 0.5,
+        }
+    }
+}
+
+// ── Config loading (unchanged logic) ─────────────────────────────────────────
 
 pub fn get_config() -> &'static RipwebConfig {
     CONFIG.get_or_init(load_config)
@@ -116,5 +255,27 @@ mod tests {
     #[test]
     fn strips_www_for_exact_domain_hint_matches() {
         assert_eq!(family_hint_for_host("www.walmart.com"), Some("product"));
+    }
+
+    #[test]
+    fn search_config_default_has_docs_rs_in_high_trust() {
+        let cfg = RipwebConfig::default();
+        assert!(cfg.search.trust.high.iter().any(|d| d == "docs.rs"));
+    }
+
+    #[test]
+    fn search_config_default_weights_are_positive() {
+        let w = ScoringWeights::default();
+        assert!(w.domain_trust > 0.0);
+        assert!(w.url_pattern > 0.0);
+        assert!(w.project_match > 0.0);
+        assert!(w.snippet_relevance > 0.0);
+        assert!(w.domain_diversity > 0.0);
+    }
+
+    #[test]
+    fn blocklist_default_includes_w3schools() {
+        let b = BlocklistConfig::default();
+        assert!(b.domains.iter().any(|d| d == "w3schools.com"));
     }
 }

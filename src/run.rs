@@ -359,8 +359,12 @@ async fn handle_query(
         return Err(RipwebError::NoContent);
     }
 
-    let output = format_search_results(&items, instant_opt.as_deref(), cli.mode, cli.engine);
-    Ok((output, items.len()))
+    // Stage-1 metadata scoring: sort by composite score before formatting.
+    let scored = crate::search::pipeline::score_results(items, query);
+    let ranked: Vec<crate::search::SearchResult> = scored.into_iter().map(|s| s.result).collect();
+
+    let output = format_search_results(&ranked, instant_opt.as_deref(), cli.mode, cli.engine);
+    Ok((output, ranked.len()))
 }
 
 pub fn format_search_results(
