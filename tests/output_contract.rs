@@ -191,6 +191,30 @@ fn verbose_mode_search_detailed_card_with_instant() {
     assert!(out.contains("> Instant!"));
 }
 
+// ── fan_out engine label ──────────────────────────────────────────────────────
+
+#[test]
+fn fan_out_engine_label_in_header() {
+    let items = vec![ripweb::search::SearchResult {
+        title: "Result 1".into(),
+        url: "https://r1.com".into(),
+        snippet: Some("Snippet 1".into()),
+    }];
+    let out = format_search_results(
+        &items,
+        None,
+        ripweb::mode::Mode::Balanced,
+        ripweb::cli::SearchEngine::FanOut,
+    );
+    assert!(
+        out.contains("DDG")
+            || out.contains("Marginalia")
+            || out.contains("Multi-engine")
+            || out.contains("RRF"),
+        "fan-out header must identify multi-engine source, got: {out:?}"
+    );
+}
+
 // ── GitHub issue format ───────────────────────────────────────────────────────
 
 #[test]

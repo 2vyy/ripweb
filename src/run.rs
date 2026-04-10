@@ -347,13 +347,25 @@ async fn handle_query(
     _sems: DomainSemaphores,
     _cache: Option<Arc<Cache>>,
 ) -> Result<(String, usize), RipwebError> {
-    // Run DDG Instant Answer and the SERP search concurrently
-    let (instant_opt, urls_result) = tokio::join!(
-        ddg_instant::fetch_instant(client, query),
-        search_query(client, query, cli.engine, &cli.searxng_url, cli.max_pages),
-    );
+    use crate::cli::SearchEngine;
+    use crate::search::fan_out_search;
 
-    let items = urls_result.map_err(RipwebError::Network)?;
+    let (items, instant_opt): (Vec<crate::search::SearchResult>, Option<String>) =
+        if cli.engine == SearchEngine::FanOut {
+            let (_, search_res) = tokio::join!(
+                ddg_instant::fetch_instant(client, query),
+                fan_out_search(client, query, cli.max_pages),
+            );
+            let items = search_res.map_err(RipwebError::Network)?;
+            (items, None)
+        } else {
+            let (instant_res, urls_result) = tokio::join!(
+                ddg_instant::fetch_instant(client, query),
+                search_query(client, query, cli.engine, &cli.searxng_url, cli.max_pages),
+            );
+            let items = urls_result.map_err(RipwebError::Network)?;
+            (items, instant_res)
+        };
 
     if items.is_empty() {
         return Err(RipwebError::NoContent);
@@ -380,6 +392,12 @@ pub fn format_search_results(
         crate::cli::SearchEngine::Marginalia => "Marginalia",
         crate::cli::SearchEngine::FanOut => "DDG+Marginalia (RRF)",
     };
+
+    // For multi-engine fan-out, always emit a source header so callers can
+    // identify the provenance regardless of density tier.
+    if engine == crate::cli::SearchEngine::FanOut {
+        output.push_str(&format!("<!-- source: {engine_name} -->\n"));
+    }
 
     for item in items {
         match mode.density_tier() {
