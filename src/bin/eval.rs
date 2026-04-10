@@ -271,13 +271,17 @@ async fn run_experiment(
 }
 
 fn extract_action(content: &str) -> Option<&str> {
-    static RE: OnceLock<Option<Regex>> = OnceLock::new();
-    let re = RE.get_or_init(|| Regex::new(r#"Action:\s*ripweb\s+-q\s+['"]?(.+?)['"]?($|\n)"#).ok());
+    static RE: std::sync::OnceLock<Option<Regex>> = std::sync::OnceLock::new();
+    let re_opt =
+        RE.get_or_init(|| Regex::new(r#"Action:\s*ripweb\s+-q\s+['"]?(.+?)['"]?($|\n)"#).ok());
 
-    re.as_ref()
-        .and_then(|r| r.captures(content))
-        .and_then(|c: regex::Captures| c.get(1))
-        .map(|m: regex::Match| m.as_str())
+    if let Some(re) = re_opt {
+        re.captures(content)
+            .and_then(|c: regex::Captures| c.get(1))
+            .map(|m| m.as_str())
+    } else {
+        None
+    }
 }
 
 async fn execute_ripweb_tool(query: &str, verbosity: u8) -> Result<String> {
