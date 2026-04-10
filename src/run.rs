@@ -4,6 +4,7 @@
 //! search queries and platform URLs. It coordinates fetching, retries,
 //! caching, and final output formatting based on output mode.
 
+use std::fmt::Write;
 use std::sync::Arc;
 
 use crate::{
@@ -396,28 +397,28 @@ pub fn format_search_results(
     // For multi-engine fan-out, always emit a source header so callers can
     // identify the provenance regardless of density tier.
     if engine == crate::cli::SearchEngine::FanOut {
-        output.push_str(&format!("<!-- source: {engine_name} -->\n"));
+        let _ = writeln!(output, "<!-- source: {engine_name} -->");
     }
 
     for item in items {
         match mode.density_tier() {
             1 => {
-                output.push_str(&format!("- [{}]({})\n", item.title, item.url));
+                let _ = writeln!(output, "- [{}]({})", item.title, item.url);
             }
             2 => {
-                output.push_str(&format!("- [{}]({})\n", item.title, item.url));
+                let _ = writeln!(output, "- [{}]({})", item.title, item.url);
                 if let Some(snip) = &item.snippet {
                     let cleaned = snip.replace('\n', " ");
-                    output.push_str(&format!("  > {}\n", cleaned));
+                    let _ = writeln!(output, "  > {}", cleaned);
                 }
             }
             _ => {
-                output.push_str(&format!("### [{}]({})\n", item.title, item.url));
-                output.push_str(&format!("**Source:** {}\n", engine_name));
+                let _ = writeln!(output, "### [{}]({})", item.title, item.url);
+                let _ = writeln!(output, "**Source:** {}", engine_name);
                 if let Some(snip) = &item.snippet {
-                    output.push_str(&format!("{}\n", snip));
+                    let _ = writeln!(output, "{}", snip);
                 }
-                output.push_str("---\n");
+                let _ = writeln!(output, "---");
             }
         }
     }
