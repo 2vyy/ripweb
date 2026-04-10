@@ -54,5 +54,27 @@ pub async fn search_query(
             searxng::search(client, searxng_url, query, limit).await
         }
         SearchEngine::Marginalia => marginalia::search(client, query, limit).await,
+        SearchEngine::FanOut => fan_out_search(client, query, limit).await,
     }
+}
+
+/// Fan-out search: query DuckDuckGo and Marginalia in parallel, then fuse
+/// with Reciprocal Rank Fusion. The limit is applied per-engine before fusion.
+/// Marginalia errors are non-fatal — degrades gracefully to DDG-only results.
+pub async fn fan_out_search(
+    client: &rquest::Client,
+    query: &str,
+    limit: usize,
+) -> Result<Vec<SearchResult>, String> {
+    let (ddg_res, marginalia_res) = tokio::join!(
+        duckduckgo::search(client, query, limit),
+        marginalia::search(client, query, limit),
+    );
+
+    let ddg = ddg_res.map_err(|e| e.to_string())?;
+    // Marginalia errors are non-fatal — degrade gracefully to DDG only.
+    let marginalia = marginalia_res.unwrap_or_default();
+
+    let fused = fusion::rrf_fuse(&[("ddg", ddg), ("marginalia", marginalia)]);
+    Ok(fused)
 }

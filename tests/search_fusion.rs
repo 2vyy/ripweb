@@ -72,3 +72,11 @@ fn rrf_fuse_case_insensitive_scheme_and_host() {
         fused.iter().map(|r| &r.url).collect::<Vec<_>>()
     );
 }
+
+// Compile-time check that FanOut variant exists on SearchEngine.
+#[test]
+fn fan_out_engine_variant_exists() {
+    use ripweb::cli::SearchEngine;
+    let engine = SearchEngine::FanOut;
+    assert!(format!("{engine:?}").contains("FanOut"));
+}

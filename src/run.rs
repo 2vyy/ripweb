@@ -378,6 +378,7 @@ pub fn format_search_results(
         crate::cli::SearchEngine::Ddg => "DuckDuckGo",
         crate::cli::SearchEngine::Searxng => "SearXNG",
         crate::cli::SearchEngine::Marginalia => "Marginalia",
+        crate::cli::SearchEngine::FanOut => "DDG+Marginalia (RRF)",
     };
 
     for item in items {
