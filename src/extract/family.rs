@@ -428,4 +428,36 @@ mod tests {
             PageFamily::Product
         );
     }
+
+    #[test]
+    fn test_count_spec_markers() {
+        assert_eq!(count_spec_markers(""), 0);
+
+        // No matches
+        assert_eq!(
+            count_spec_markers("This is just some random text.\nIt has no special hints here."),
+            0
+        );
+
+        // Single match
+        assert_eq!(count_spec_markers("Here are the Specifications:"), 1);
+
+        // Case insensitive match
+        assert_eq!(count_spec_markers("SPECS:\n - Fast\n - Reliable"), 1);
+
+        // Multiple distinct matches on different lines
+        assert_eq!(
+            count_spec_markers("Product Details:\nBrand: Acme\nModel: X100"),
+            3
+        );
+
+        // Multiple matches on the SAME line (should count as 1 because we filter lines)
+        assert_eq!(
+            count_spec_markers("Specifications and Product Details for this Brand"),
+            1
+        );
+
+        // Leading and trailing whitespace should be trimmed
+        assert_eq!(count_spec_markers("   warranty   \n \t dimensions \t "), 2);
+    }
 }

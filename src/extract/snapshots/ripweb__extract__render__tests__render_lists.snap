@@ -1,0 +1,9 @@
+---
+source: src/extract/render.rs
+expression: render_str(html)
+---
+- Item 1
+- Item 2
+
+1. First
+2. Second
