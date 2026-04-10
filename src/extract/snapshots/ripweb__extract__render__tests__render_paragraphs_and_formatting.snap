@@ -1,0 +1,8 @@
+---
+source: src/extract/render.rs
+expression: render_str(html)
+---
+This is a paragraph with **bold**, **bold2**, *italic*, *italic2*, and `code`.
+
+Line 1 Line 2
+---

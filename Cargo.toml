@@ -4,13 +4,7 @@ version = "0.1.0"
 edition = "2024"
 license = "MIT"
 
-[[bench]]
-name = "minify"
-harness = false
 
-[[bench]]
-name = "token_efficiency"
-harness = false
 
 [dependencies]
 # Async runtime
@@ -79,3 +73,7 @@ tempfile = "3.27.0"
 filetime = "0.2.27"
 
 tiktoken-rs = "0.10"
+
+[[bench]]
+name = "github_format"
+harness = false
