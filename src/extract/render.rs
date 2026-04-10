@@ -450,3 +450,63 @@ fn collect_json_strings(value: &serde_json::Value, out: &mut Vec<String>) {
         _ => {}
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn render_str(html: &str) -> String {
+        let dom = tl::parse(html, tl::ParserOptions::default()).unwrap();
+        let parser = dom.parser();
+        let mut out = String::new();
+        for handle in dom.children() {
+            if let Some(node) = handle.get(parser) {
+                out.push_str(&render_markdown(node, parser));
+            }
+        }
+        cleanup_markdown(&out)
+    }
+
+    #[test]
+    fn test_render_headings() {
+        let html = "<h1>Heading 1</h1><h2>Heading 2</h2><h3>Heading 3</h3><h4>Heading 4</h4><h5>Heading 5</h5><h6>Heading 6</h6>";
+        insta::assert_snapshot!(render_str(html));
+    }
+
+    #[test]
+    fn test_render_paragraphs_and_formatting() {
+        let html = "<p>This is a paragraph with <strong>bold</strong>, <b>bold2</b>, <em>italic</em>, <i>italic2</i>, and <code>code</code>.</p><p>Line 1<br>Line 2<hr></p>";
+        insta::assert_snapshot!(render_str(html));
+    }
+
+    #[test]
+    fn test_render_links_and_images() {
+        let html = r#"<a href="https://example.com">Link</a> <img src="image.jpg" alt="Alt text"> <a href="https://tracking.com?utm_source=test">Tracking Link</a>"#;
+        insta::assert_snapshot!(render_str(html));
+    }
+
+    #[test]
+    fn test_render_lists() {
+        let html = "<ul><li>Item 1</li><li>Item 2</li></ul><ol><li>First</li><li>Second</li></ol>";
+        insta::assert_snapshot!(render_str(html));
+    }
+
+    #[test]
+    fn test_render_code_blocks() {
+        let html =
+            r#"<pre><code class="language-rust">fn main() { println!("Hello"); }</code></pre>"#;
+        insta::assert_snapshot!(render_str(html));
+    }
+
+    #[test]
+    fn test_render_blockquotes() {
+        let html = "<blockquote><p>This is a quote.</p><p>Multiple lines.</p></blockquote>";
+        insta::assert_snapshot!(render_str(html));
+    }
+
+    #[test]
+    fn test_render_tables() {
+        let html = "<table><thead><tr><th>Header 1</th><th>Header 2</th></tr></thead><tbody><tr><td>Data 1</td><td>Data 2</td></tr></tbody></table>";
+        insta::assert_snapshot!(render_str(html));
+    }
+}
