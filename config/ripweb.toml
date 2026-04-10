@@ -30,3 +30,55 @@ family = "docs"
 [[extract.suffix_rules]]
 suffix = ".gov"
 family = "knowledge"
+
+[search]
+
+[search.trust]
+high = [
+    "docs.rs",
+    "doc.rust-lang.org",
+    "crates.io",
+    "github.com",
+    "pypi.org",
+    "npmjs.com",
+    "pkg.go.dev",
+    "developer.mozilla.org",
+    "developer.apple.com",
+    "docs.python.org",
+    "cppreference.com",
+    "rust-lang.org",
+    "golang.org",
+    "python.org",
+    "nodejs.org",
+    "kotlinlang.org",
+    "swift.org",
+    "tokio.rs",
+    "serde.rs",
+    "hyper.rs",
+    "clap.rs",
+]
+medium = [
+    "stackoverflow.com",
+    "reddit.com",
+    "news.ycombinator.com",
+    "unix.stackexchange.com",
+    "superuser.com",
+    "serverfault.com",
+]
+low = []
+
+[search.blocklist]
+domains = [
+    "w3schools.com",
+    "geeksforgeeks.org",
+    "tutorialspoint.com",
+    "javatpoint.com",
+    "programiz.com",
+]
+
+[search.weights]
+domain_trust = 1.0
+url_pattern = 0.8
+project_match = 1.2
+snippet_relevance = 0.6
+domain_diversity = 0.5
