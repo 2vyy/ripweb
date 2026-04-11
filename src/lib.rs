@@ -5,6 +5,7 @@
 //! search modules.
 
 pub mod cli;
+pub mod cli_utils;
 pub mod config;
 pub mod error;
 pub mod extract;
