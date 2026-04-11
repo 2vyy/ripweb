@@ -40,12 +40,6 @@ pub enum PlatformRoute {
         video_id: String,
         original_url: String,
     },
-    Twitter {
-        tweet_url: String,
-    },
-    TikTok {
-        video_url: String,
-    },
     Generic(Url),
 }
 
@@ -79,10 +73,6 @@ fn classify_url(url: Url) -> PlatformRoute {
         Some("stackoverflow.com") | Some("www.stackoverflow.com") => classify_stackoverflow(url),
         Some("arxiv.org") => classify_arxiv(url),
         Some("www.youtube.com") | Some("youtube.com") | Some("youtu.be") => classify_youtube(url),
-        Some("twitter.com") | Some("www.twitter.com") | Some("x.com") | Some("www.x.com") => {
-            classify_twitter(url)
-        }
-        Some("www.tiktok.com") | Some("tiktok.com") => classify_tiktok(url),
         _ => PlatformRoute::Generic(url),
     }
 }
@@ -133,7 +123,7 @@ fn classify_hn(url: Url) -> PlatformRoute {
 }
 
 fn classify_wikipedia(url: Url) -> PlatformRoute {
-    use crate::search::wikipedia::wiki_title_from_url;
+    use crate::search::platforms::wikipedia::wiki_title_from_url;
     if let Some(title) = wiki_title_from_url(&url) {
         PlatformRoute::Wikipedia { title }
     } else {
@@ -142,7 +132,7 @@ fn classify_wikipedia(url: Url) -> PlatformRoute {
 }
 
 fn classify_stackoverflow(url: Url) -> PlatformRoute {
-    use crate::search::stackoverflow::so_question_id_from_url;
+    use crate::search::platforms::stackoverflow::so_question_id_from_url;
     if let Some(id) = so_question_id_from_url(&url) {
         PlatformRoute::StackOverflow { question_id: id }
     } else {
@@ -151,7 +141,7 @@ fn classify_stackoverflow(url: Url) -> PlatformRoute {
 }
 
 fn classify_arxiv(url: Url) -> PlatformRoute {
-    use crate::search::arxiv::arxiv_id_from_url;
+    use crate::search::platforms::arxiv::arxiv_id_from_url;
     if let Some(id) = arxiv_id_from_url(&url) {
         PlatformRoute::ArXiv { paper_id: id }
     } else {
@@ -160,35 +150,12 @@ fn classify_arxiv(url: Url) -> PlatformRoute {
 }
 
 fn classify_youtube(url: Url) -> PlatformRoute {
-    use crate::search::youtube::youtube_video_id;
+    use crate::search::platforms::youtube::youtube_video_id;
     let original_url = url.to_string();
     if let Some(video_id) = youtube_video_id(&url) {
         PlatformRoute::YouTube {
             video_id,
             original_url,
-        }
-    } else {
-        PlatformRoute::Generic(url)
-    }
-}
-
-fn classify_twitter(url: Url) -> PlatformRoute {
-    use crate::search::twitter::is_tweet_url;
-    if is_tweet_url(&url) {
-        PlatformRoute::Twitter {
-            tweet_url: url.to_string(),
-        }
-    } else {
-        // Profile pages, search, etc. — fall back to generic
-        PlatformRoute::Generic(url)
-    }
-}
-
-fn classify_tiktok(url: Url) -> PlatformRoute {
-    use crate::search::tiktok::is_tiktok_video_url;
-    if is_tiktok_video_url(&url) {
-        PlatformRoute::TikTok {
-            video_url: url.to_string(),
         }
     } else {
         PlatformRoute::Generic(url)

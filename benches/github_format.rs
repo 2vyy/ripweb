@@ -1,6 +1,8 @@
 use criterion::{Criterion, criterion_group, criterion_main};
-use ripweb::mode::Mode;
-use ripweb::search::github::{GithubComment, GithubIssue, GithubLabel, GithubUser, format_issue};
+use ripweb::search::platforms::github::{
+    GithubComment, GithubIssue, GithubLabel, GithubUser, format_issue,
+};
+use ripweb::verbosity::Verbosity;
 use std::hint::black_box;
 
 fn bench_format_issue(c: &mut Criterion) {
@@ -33,7 +35,7 @@ fn bench_format_issue(c: &mut Criterion) {
             format_issue(
                 black_box(&issue),
                 black_box(&comments),
-                black_box(Mode::Verbose),
+                black_box(Verbosity::Full),
             )
         })
     });

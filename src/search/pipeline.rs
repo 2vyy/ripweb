@@ -9,8 +9,8 @@ use std::collections::HashMap;
 use crate::config::get_config;
 use crate::search::SearchResult;
 use crate::search::scoring::{
-    ScoredResult, ScorerInput, blocklist_penalty, domain_diversity, domain_trust, extract_host,
-    project_match, snippet_relevance, url_pattern,
+    ScoredResult, ScorerInput, ScoringWeights, blocklist_penalty, domain_diversity, domain_trust,
+    extract_host, project_match, snippet_relevance, url_pattern,
 };
 use crate::search::trace::ScorerContribution;
 
@@ -25,9 +25,27 @@ pub fn score_results(results: Vec<SearchResult>, query: &str) -> Vec<ScoredResul
     }
 
     let cfg = get_config();
-    let trust = &cfg.search.trust;
-    let blocklist = &cfg.search.blocklist;
-    let weights = &cfg.search.weights;
+    score_results_with_weights(
+        results,
+        query,
+        &cfg.search.trust,
+        &cfg.search.blocklist,
+        &cfg.search.scoring,
+    )
+}
+
+/// Score and rank results using explicitly provided scorer weights.
+#[must_use]
+pub fn score_results_with_weights(
+    results: Vec<SearchResult>,
+    query: &str,
+    trust: &crate::config::TrustConfig,
+    blocklist: &crate::config::BlocklistConfig,
+    weights: &ScoringWeights,
+) -> Vec<ScoredResult> {
+    if results.is_empty() {
+        return Vec::new();
+    }
 
     // Track how many times each domain has appeared (engine rank order).
     let mut domain_counts: HashMap<String, usize> = HashMap::new();
@@ -49,7 +67,10 @@ pub fn score_results(results: Vec<SearchResult>, query: &str) -> Vec<ScoredResul
             let trust_c = apply_weight(domain_trust::score(&input, trust), weights.domain_trust);
             let pattern_c = apply_weight(url_pattern::score(&input), weights.url_pattern);
             let project_c = apply_weight(project_match::score(&input), weights.project_match);
-            let blocklist_c = blocklist_penalty::score(&input, blocklist); // weight = 1.0 (hard signal)
+            let blocklist_c = apply_weight(
+                blocklist_penalty::score(&input, blocklist),
+                weights.blocklist_penalty,
+            );
             let snippet_c =
                 apply_weight(snippet_relevance::score(&input), weights.snippet_relevance);
 

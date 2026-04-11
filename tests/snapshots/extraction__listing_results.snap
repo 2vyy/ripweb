@@ -1,0 +1,20 @@
+---
+source: tests/extraction_generic.rs
+expression: content
+---
+## [The Async Book](https://doc.rust-lang.org/async-book/)
+
+The official guide to asynchronous programming in Rust. Covers Futures, async/await syntax, and the Tokio runtime in depth.
+docs.rust-lang.org
+## [Tokio Tutorial](https://tokio.rs/tokio/tutorial)
+
+A hands-on tutorial for learning the Tokio async runtime. Build a key-value store server from scratch using async I/O primitives.
+tokio.rs
+## [Pin and Suffering](https://fasterthanli.me/articles/pin-and-suffering)
+
+An in-depth exploration of the Pin type in Rust, why it exists, and how it interacts with self-referential async state machines.
+fasterthanli.me
+## [Futures and Segfaults](https://without.boats/blog/futures-and-segfaults/)
+
+A deep dive into why Rust's Future trait was designed the way it was, focusing on the tradeoffs between convenience and safety.
+without.boats

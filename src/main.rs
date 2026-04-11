@@ -12,12 +12,13 @@ use clap::Parser;
 use indicatif::{ProgressBar, ProgressStyle};
 use is_terminal::IsTerminal;
 use tiktoken_rs::cl100k_base;
-use tracing_subscriber::EnvFilter;
 
 use ripweb::{
     cli::Cli,
+    cli_utils::{finish_spinner, maybe_track, setup_tracing, write_stdout},
     error::RipwebError,
     fetch::{RetryConfig, cache::Cache, client::build_client, politeness::DomainSemaphores},
+    research::wayback::validate_date,
     run::dispatch,
 };
 
@@ -42,12 +43,16 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    let input = match &cli.query_or_url {
-        Some(s) => s.as_str(),
-        None => {
-            anyhow::bail!("Error: a URL or query is required.");
-        }
-    };
+    if let Some(date) = cli.as_of.as_deref()
+        && validate_date(date).is_err()
+    {
+        anyhow::bail!("Error: invalid --as-of date, expected YYYY-MM-DD");
+    }
+
+    let input = cli.query_or_url.as_deref().unwrap_or("");
+    if input.is_empty() && !cli.batch && cli.wikidata.is_none() {
+        anyhow::bail!("Error: a URL or query is required.");
+    }
 
     let is_tty = io::stdout().is_terminal();
     let spinner: Option<ProgressBar> = if is_tty {
@@ -87,22 +92,32 @@ async fn main() -> anyhow::Result<()> {
     let (text, page_count) = match result {
         Ok(pair) => pair,
         Err(e) => {
+            maybe_track(&cli, input, None, 0, Some(e.to_string()), e.exit_code());
             eprintln!("Error: {e}");
             std::process::exit(e.exit_code());
         }
     };
 
     if text.trim().is_empty() {
+        maybe_track(
+            &cli,
+            input,
+            Some(&text),
+            0,
+            Some(RipwebError::NoContent.to_string()),
+            4,
+        );
         eprintln!("Error: {}", RipwebError::NoContent);
         std::process::exit(4);
     }
 
-    // Always compute token count (used by both --stat and the output header).
+    // Always compute token count (used by --stat).
     let token_count = cl100k_base()
         .map(|bpe| bpe.encode_with_special_tokens(&text).len())
         .unwrap_or(0);
 
     if cli.stat {
+        maybe_track(&cli, input, Some(&text), token_count, None, 0);
         let size_mb = text.len() as f64 / 1_048_576.0;
         write_stdout(&format!(
             "Pages: {page_count} | Raw Size: {size_mb:.2} MB | Tokens: {token_count}\n"
@@ -111,6 +126,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     if cli.copy {
+        maybe_track(&cli, input, Some(&text), token_count, None, 0);
         match arboard::Clipboard::new().and_then(|mut b| b.set_text(&text).map(|_| ())) {
             Ok(()) => eprintln!("Copied to clipboard."),
             Err(e) => {
@@ -120,45 +136,8 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    let header = format!(
-        "# ripweb output\n# Mode: {} • Estimated tokens: {} (cl100k_base) • {} results\n\n",
-        cli.mode, token_count, page_count
-    );
-    write_stdout(&header);
+    maybe_track(&cli, input, Some(&text), token_count, None, 0);
     write_stdout(&text);
     write_stdout("\n");
     Ok(())
-}
-
-fn write_stdout(text: &str) {
-    let stdout = io::stdout();
-    let mut handle = stdout.lock();
-    if let Err(e) = handle.write_all(text.as_bytes()) {
-        if e.kind() == io::ErrorKind::BrokenPipe {
-            std::process::exit(0);
-        }
-        eprintln!("stdout write error: {e}");
-        std::process::exit(1);
-    }
-}
-
-fn finish_spinner(spinner: &Option<ProgressBar>) {
-    if let Some(pb) = spinner {
-        pb.finish_and_clear();
-    }
-}
-
-fn setup_tracing(verbose: u8) {
-    let level = match verbose {
-        0 => "warn",
-        1 => "info",
-        2 => "debug",
-        _ => "trace",
-    };
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new(format!("ripweb={level}")));
-    tracing_subscriber::fmt()
-        .with_env_filter(filter)
-        .with_writer(io::stderr)
-        .init();
 }

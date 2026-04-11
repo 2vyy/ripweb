@@ -1,43 +1,25 @@
 # Test Layout
 
-The `tests/` directory is split by responsibility:
+The `tests/` directory is organized by test layer and fixture type.
 
-- top-level `*.rs`: integration test entry points grouped by subsystem
-- `fixtures/`: small hand-authored fixtures used directly by tests
-- `expected/curated/`: human-curated reference outputs
-- `expected/generated/`: outputs generated from the shared corpus for inspection and comparison
-- `snapshots/`: `insta` snapshots for targeted extraction behavior
+## Integration test binaries (top-level `.rs`)
 
-## Curated vs generated
+- `unit_*`: Layer 1 unit tests (minify, router, normalize)
+- `extraction_*`: Layer 2 extraction tests (apostles, generic, torture, metrics)
+- `search_*`: Layer 3 search tests (adapters, scoring, fusion, pipeline, eval)
+- `contract_*`: Layer 4 CLI/output contract tests
+- `fetch.rs` / `crawler.rs`: network-layer behavior tests
+- `research_*.rs`: research feature tests
 
-- curated outputs are human-maintained references used for quality evaluation
-- generated outputs are machine-produced artifacts used to compare current extractor behavior across modes
+## Fixture-only directories
 
-These serve different jobs and should not be conflated.
+- `extraction/`: HTML/JSON fixtures for extraction layers
+- `search/`: frozen adapter responses and eval JSONL datasets
+- `research/`: frozen fixtures for find/wayback/wikidata tests
 
-## Corpus manifest
+These fixture directories intentionally contain test data only; Rust test entry points stay at `tests/` root.
 
-The authoritative fixture manifest lives in [src/corpus.rs](/home/ivy/Projects/ripweb/src/corpus.rs).
+## Shared helpers and snapshots
 
-That manifest decides:
-
-- whether a fixture is curated or generated-only
-- whether it participates in metrics
-- whether generated outputs should exist for it
-
-Useful commands:
-
-- `cargo run --example sync_goldens`
-- `cargo run --example review_corpus`
-
-## How This Relates To Bulk Stress Testing
-
-The curated and generated outputs in `tests/expected/` are only one layer of evaluation.
-
-For larger-scale parser stress testing, use the corpus workflow instead:
-
-- review and freeze real pages into `corpus/frozen/`
-- run `cargo run --example bulk_extract_report`
-- inspect `corpus/reports/` for heuristic failures
-
-That bulk evaluation layer is intentionally separate so we do not need exact goldens for every real-world page.
+- `common/`: reusable helper modules (no test binaries)
+- `snapshots/`: all `insta` golden snapshots (flat, auto-managed)

@@ -18,14 +18,14 @@ fn baseline_traces(
 
 #[test]
 fn baseline_metrics_regression() {
-    let (queries, traces) = baseline_traces("tests/fixtures/search/eval/regression.jsonl");
+    let (queries, traces) = baseline_traces("tests/search/eval/regression.jsonl");
     let metrics = compute_metrics(&queries, &traces);
     insta::assert_json_snapshot!("baseline_regression_metrics", metrics);
 }
 
 #[test]
 fn baseline_traces_regression() {
-    let (queries, traces) = baseline_traces("tests/fixtures/search/eval/regression.jsonl");
+    let (queries, traces) = baseline_traces("tests/search/eval/regression.jsonl");
     let summary: Vec<serde_json::Value> = queries
         .iter()
         .zip(traces.iter())
@@ -43,14 +43,14 @@ fn baseline_traces_regression() {
 
 #[test]
 fn baseline_metrics_techdocs() {
-    let (queries, traces) = baseline_traces("tests/fixtures/search/eval/techdocs_bench.jsonl");
+    let (queries, traces) = baseline_traces("tests/search/eval/techdocs_bench.jsonl");
     let metrics = compute_metrics(&queries, &traces);
     insta::assert_json_snapshot!("baseline_techdocs_metrics", metrics);
 }
 
 #[test]
 fn baseline_traces_techdocs() {
-    let (queries, traces) = baseline_traces("tests/fixtures/search/eval/techdocs_bench.jsonl");
+    let (queries, traces) = baseline_traces("tests/search/eval/techdocs_bench.jsonl");
     let summary: Vec<serde_json::Value> = queries
         .iter()
         .zip(traces.iter())
@@ -108,22 +108,22 @@ fn scored_traces(
 
 #[test]
 fn phase1_metrics_regression() {
-    let (queries, traces) = scored_traces("tests/fixtures/search/eval/regression.jsonl");
+    let (queries, traces) = scored_traces("tests/search/eval/regression.jsonl");
     let metrics = compute_metrics(&queries, &traces);
     insta::assert_json_snapshot!("phase1_regression_metrics", metrics);
 }
 
 #[test]
 fn phase1_metrics_techdocs() {
-    let (queries, traces) = scored_traces("tests/fixtures/search/eval/techdocs_bench.jsonl");
+    let (queries, traces) = scored_traces("tests/search/eval/techdocs_bench.jsonl");
     let metrics = compute_metrics(&queries, &traces);
     insta::assert_json_snapshot!("phase1_techdocs_metrics", metrics);
 }
 
 #[test]
 fn phase1_success_at_3_not_worse_than_baseline_regression() {
-    let (bq, bt) = baseline_traces("tests/fixtures/search/eval/regression.jsonl");
-    let (sq, st) = scored_traces("tests/fixtures/search/eval/regression.jsonl");
+    let (bq, bt) = baseline_traces("tests/search/eval/regression.jsonl");
+    let (sq, st) = scored_traces("tests/search/eval/regression.jsonl");
     let baseline = compute_metrics(&bq, &bt);
     let scored = compute_metrics(&sq, &st);
     assert!(
@@ -136,8 +136,8 @@ fn phase1_success_at_3_not_worse_than_baseline_regression() {
 
 #[test]
 fn phase1_success_at_3_not_worse_than_baseline_techdocs() {
-    let (bq, bt) = baseline_traces("tests/fixtures/search/eval/techdocs_bench.jsonl");
-    let (sq, st) = scored_traces("tests/fixtures/search/eval/techdocs_bench.jsonl");
+    let (bq, bt) = baseline_traces("tests/search/eval/techdocs_bench.jsonl");
+    let (sq, st) = scored_traces("tests/search/eval/techdocs_bench.jsonl");
     let baseline = compute_metrics(&bq, &bt);
     let scored = compute_metrics(&sq, &st);
     assert!(
@@ -194,22 +194,22 @@ fn fan_out_traces(
 
 #[test]
 fn phase2_metrics_regression() {
-    let (queries, traces) = fan_out_traces("tests/fixtures/search/eval/regression_fanout.jsonl");
+    let (queries, traces) = fan_out_traces("tests/search/eval/regression_fanout.jsonl");
     let metrics = compute_metrics(&queries, &traces);
     insta::assert_json_snapshot!("phase2_regression_metrics", metrics);
 }
 
 #[test]
 fn phase2_metrics_techdocs() {
-    let (queries, traces) = fan_out_traces("tests/fixtures/search/eval/techdocs_fanout.jsonl");
+    let (queries, traces) = fan_out_traces("tests/search/eval/techdocs_fanout.jsonl");
     let metrics = compute_metrics(&queries, &traces);
     insta::assert_json_snapshot!("phase2_techdocs_metrics", metrics);
 }
 
 #[test]
 fn phase2_success_at_3_not_worse_than_phase1_regression() {
-    let (bq, bt) = scored_traces("tests/fixtures/search/eval/regression.jsonl");
-    let (fq, ft) = fan_out_traces("tests/fixtures/search/eval/regression_fanout.jsonl");
+    let (bq, bt) = scored_traces("tests/search/eval/regression.jsonl");
+    let (fq, ft) = fan_out_traces("tests/search/eval/regression_fanout.jsonl");
     let phase1 = compute_metrics(&bq, &bt);
     let phase2 = compute_metrics(&fq, &ft);
     assert!(
@@ -222,8 +222,8 @@ fn phase2_success_at_3_not_worse_than_phase1_regression() {
 
 #[test]
 fn phase2_success_at_3_not_worse_than_phase1_techdocs() {
-    let (bq, bt) = scored_traces("tests/fixtures/search/eval/techdocs_bench.jsonl");
-    let (fq, ft) = fan_out_traces("tests/fixtures/search/eval/techdocs_fanout.jsonl");
+    let (bq, bt) = scored_traces("tests/search/eval/techdocs_bench.jsonl");
+    let (fq, ft) = fan_out_traces("tests/search/eval/techdocs_fanout.jsonl");
     let phase1 = compute_metrics(&bq, &bt);
     let phase2 = compute_metrics(&fq, &ft);
     assert!(

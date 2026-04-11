@@ -112,6 +112,9 @@ async fn try_get_text(client: &rquest::Client, url: &Url) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fetch::client::build_client;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
 
     #[test]
     fn with_md_suffix_appends_to_plain_path() {
@@ -136,5 +139,171 @@ mod tests {
     fn with_md_suffix_skips_html_files() {
         let url = Url::parse("https://docs.example.com/page.html").unwrap();
         assert!(with_md_suffix(&url).is_none());
+    }
+
+    #[tokio::test]
+    async fn probe_markdown_prefers_md_suffix_when_available() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/docs/getting-started.md"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .insert_header("content-type", "text/markdown")
+                    .set_body_string("# Getting started"),
+            )
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/docs/getting-started/index.html.md"))
+            .respond_with(ResponseTemplate::new(200).set_body_string("fallback"))
+            .expect(0)
+            .mount(&server)
+            .await;
+
+        let client = build_client().unwrap();
+        let url = Url::parse(&format!("{}/docs/getting-started", server.uri())).unwrap();
+        let result = probe_markdown(&client, &url).await;
+
+        assert_eq!(
+            result,
+            Some(("# Getting started".to_string(), ProbeSource::MdSuffix))
+        );
+    }
+
+    #[tokio::test]
+    async fn probe_markdown_uses_index_html_md_for_directory_urls() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/docs/index.html.md"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .insert_header("content-type", "text/plain")
+                    .set_body_string("Directory index markdown"),
+            )
+            .mount(&server)
+            .await;
+
+        let client = build_client().unwrap();
+        let url = Url::parse(&format!("{}/docs/", server.uri())).unwrap();
+        let result = probe_markdown(&client, &url).await;
+
+        assert_eq!(
+            result,
+            Some((
+                "Directory index markdown".to_string(),
+                ProbeSource::MdSuffix
+            ))
+        );
+    }
+
+    #[tokio::test]
+    async fn probe_markdown_rejects_html_and_empty_markdown_responses() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/docs/page.md"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_raw("<html>not markdown</html>", "text/html; charset=utf-8"),
+            )
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/docs/index.html.md"))
+            .respond_with(ResponseTemplate::new(404))
+            .mount(&server)
+            .await;
+
+        Mock::given(method("GET"))
+            .and(path("/docs/empty.md"))
+            .respond_with(ResponseTemplate::new(200).set_body_raw("   \n\t", "text/markdown"))
+            .mount(&server)
+            .await;
+
+        let client = build_client().unwrap();
+        let html_url = Url::parse(&format!("{}/docs/page", server.uri())).unwrap();
+        let empty_url = Url::parse(&format!("{}/docs/empty", server.uri())).unwrap();
+
+        assert!(probe_markdown(&client, &html_url).await.is_none());
+        assert!(probe_markdown(&client, &empty_url).await.is_none());
+    }
+
+    #[tokio::test]
+    async fn probe_llms_index_uses_full_then_root_then_well_known() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/llms-full.txt"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .insert_header("content-type", "text/plain")
+                    .set_body_string("full index"),
+            )
+            .mount(&server)
+            .await;
+
+        let client = build_client().unwrap();
+        let origin = Url::parse(&server.uri()).unwrap();
+        let first = probe_llms_index(&client, &origin).await;
+        assert_eq!(
+            first,
+            Some(("full index".to_string(), ProbeSource::LlmsFullTxt))
+        );
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/llms-full.txt"))
+            .respond_with(ResponseTemplate::new(404))
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/llms.txt"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .insert_header("content-type", "text/plain")
+                    .set_body_string("root index"),
+            )
+            .mount(&server)
+            .await;
+
+        let origin = Url::parse(&server.uri()).unwrap();
+        let second = probe_llms_index(&client, &origin).await;
+        assert_eq!(
+            second,
+            Some(("root index".to_string(), ProbeSource::LlmsTxt))
+        );
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/llms-full.txt"))
+            .respond_with(ResponseTemplate::new(404))
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/llms.txt"))
+            .respond_with(ResponseTemplate::new(404))
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/.well-known/llms.txt"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .insert_header("content-type", "text/plain")
+                    .set_body_string("well-known index"),
+            )
+            .mount(&server)
+            .await;
+
+        let origin = Url::parse(&server.uri()).unwrap();
+        let third = probe_llms_index(&client, &origin).await;
+        assert_eq!(
+            third,
+            Some(("well-known index".to_string(), ProbeSource::LlmsTxt))
+        );
+    }
+
+    #[test]
+    fn probe_source_display_names_are_stable() {
+        assert_eq!(ProbeSource::MdSuffix.to_string(), ".md");
+        assert_eq!(ProbeSource::LlmsTxt.to_string(), "llms.txt");
+        assert_eq!(ProbeSource::LlmsFullTxt.to_string(), "llms-full.txt");
     }
 }

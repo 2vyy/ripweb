@@ -1,0 +1,24 @@
+---
+source: tests/extraction_generic.rs
+expression: content
+---
+# How to Use Rust Iterators Effectively
+
+Published by Jane Smith on 2024-03-15
+
+Rust iterators are one of the language's most powerful features, enabling expressive and efficient data transformation pipelines without runtime overhead. The iterator trait defines a single method, `next`, that advances the iterator and returns an `Option` wrapping the next element.
+
+The real power comes from iterator adapters: `map`, `filter`, `flat_map`, `fold`, and dozens more. These compose lazily, meaning no allocation happens until a consuming adapter like `collect` or `for_each` is called.
+
+```
+let doubled_evens: Vec&lt;i32&gt; = (0..100)
+    .filter(|x| x % 2 == 0)
+    .map(|x| x * 2)
+    .collect();
+```
+
+Chaining iterators this way is zero-cost: the compiler inlines the entire chain into a single tight loop, equivalent to a hand-written `for` loop with no heap allocations.
+
+Custom iterators are straightforward to implement. You define a struct holding your state and implement `Iterator` with a `next` method. Once you have that, you get all standard adapter methods for free.
+
+Parallel iteration is handled by the `rayon` crate, which provides a `par_iter()` method that transparently distributes work across CPU cores with work-stealing scheduling.

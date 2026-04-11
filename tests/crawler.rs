@@ -74,6 +74,7 @@ async fn crawl_respects_max_pages() {
         CrawlerConfig {
             max_depth: 1,
             max_pages: 2,
+            tables_priority: false,
         },
     );
 
@@ -130,6 +131,7 @@ async fn anchor_variants_are_deduplicated() {
         CrawlerConfig {
             max_depth: 1,
             max_pages: 10,
+            tables_priority: false,
         },
     );
 

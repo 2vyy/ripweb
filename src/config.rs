@@ -10,6 +10,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
+use crate::search::scoring::ScoringWeights;
+
 static CONFIG: OnceLock<RipwebConfig> = OnceLock::new();
 
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -60,8 +62,8 @@ pub struct SearchConfig {
     pub trust: TrustConfig,
     #[serde(default)]
     pub blocklist: BlocklistConfig,
-    #[serde(default)]
-    pub weights: ScoringWeights,
+    #[serde(default, alias = "weights")]
+    pub scoring: ScoringWeights,
 }
 
 /// Domain trust tiers. Domains in `high` get a strong score boost;
@@ -158,34 +160,6 @@ fn default_blocklist_domains() -> Vec<String> {
     .collect()
 }
 
-/// Per-scorer multiplicative weights.
-/// Each scorer returns a raw delta; the weight scales it before summing.
-#[derive(Debug, Clone, Deserialize)]
-pub struct ScoringWeights {
-    /// Weight applied to the domain trust scorer's delta.
-    pub domain_trust: f64,
-    /// Weight applied to the URL pattern scorer's delta.
-    pub url_pattern: f64,
-    /// Weight applied to the project match scorer's delta.
-    pub project_match: f64,
-    /// Weight applied to the snippet relevance scorer's delta.
-    pub snippet_relevance: f64,
-    /// Weight applied to the domain diversity scorer's delta.
-    pub domain_diversity: f64,
-}
-
-impl Default for ScoringWeights {
-    fn default() -> Self {
-        Self {
-            domain_trust: 1.0,
-            url_pattern: 0.8,
-            project_match: 1.2,
-            snippet_relevance: 0.6,
-            domain_diversity: 0.5,
-        }
-    }
-}
-
 // ── Config loading (unchanged logic) ─────────────────────────────────────────
 
 pub fn get_config() -> &'static RipwebConfig {
@@ -271,6 +245,8 @@ mod tests {
         assert!(w.project_match > 0.0);
         assert!(w.snippet_relevance > 0.0);
         assert!(w.domain_diversity > 0.0);
+        assert!(w.blocklist_penalty > 0.0);
+        assert!(w.rrf_k > 0.0);
     }
 
     #[test]

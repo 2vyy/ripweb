@@ -1,7 +1,0 @@
----
-source: tests/extract_web.rs
-assertion_line: 213
-expression: result
----
-Zero-cost abstractions are a foundational principle of Rust: you pay only for what you use, and high-level constructs compile down to the same machine code as hand-written low-level equivalents. Iterators are the canonical example. The chain of filter, map, and collect compiles to a single tight loop with no intermediate allocation. The C++ community coined the phrase and Rust inherits it fully. Traits enable this by letting the compiler monomorphize generic code at compile time, producing specialized machine code for each concrete type without any virtual dispatch overhead. This is fundamentally different from Java or Python where abstraction always carries runtime cost.
-Understanding Zero-Cost Abstractions in Rust
