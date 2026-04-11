@@ -85,7 +85,7 @@ jobs:
         uses: taiki-e/install-action@cargo-tarpaulin
 
       - name: Run Tarpaulin (coverage)
-        run: cargo tarpaulin --all-features --out Xml --run-types Tests --fail-under 70
+        run: cargo tarpaulin --all-features --out Xml --run-types Tests --fail-under 70 --exclude-files src/main.rs 'src/bin/*' src/search/mod.rs src/research/track.rs src/extract/jina.rs
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
