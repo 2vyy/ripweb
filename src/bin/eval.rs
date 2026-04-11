@@ -2,7 +2,8 @@
 //!
 //! Subcommands:
 //! - `cache`: query engines and persist per-question result caches
-//! - `recall`: evaluate recall/MRR over cached files
+//! - `recall`: evaluate recall/MRR over cached files (answer-string matching)
+//! - `url-recall`: check whether the correct source URL appears in raw engine results
 //! - `tune`: coordinate-ascent tuning of scorer weights
 //! - `domains`: report corpus source domain frequencies
 
@@ -43,6 +44,7 @@ struct EvalCli {
 enum EvalCommand {
     Cache(CacheArgs),
     Recall(RecallArgs),
+    UrlRecall(UrlRecallArgs),
     Tune(TuneArgs),
     Domains(DomainsArgs),
 }
@@ -89,6 +91,17 @@ struct TuneArgs {
 }
 
 #[derive(Args, Debug)]
+struct UrlRecallArgs {
+    /// Directory containing cached query JSON files (from the `cache` subcommand).
+    #[arg(long)]
+    cache: PathBuf,
+
+    /// Report url-recall@k for this k (also reports @1, @5, @∞ always).
+    #[arg(long, default_value = "10")]
+    at_k: usize,
+}
+
+#[derive(Args, Debug)]
 struct DomainsArgs {
     /// One or more _ref split JSONL files.
     #[arg(long, num_args = 1..)]
@@ -127,6 +140,7 @@ async fn main() -> Result<()> {
     match cli.cmd {
         EvalCommand::Cache(args) => run_cache(args).await,
         EvalCommand::Recall(args) => run_recall(args),
+        EvalCommand::UrlRecall(args) => run_url_recall(args),
         EvalCommand::Tune(args) => run_tune(args),
         EvalCommand::Domains(args) => run_domains(args),
     }
@@ -326,6 +340,146 @@ fn run_recall(args: RecallArgs) -> Result<()> {
     eprintln!("details: pass={pass_at_k} miss={miss} fail={fail}");
 
     Ok(())
+}
+
+/// url-recall measures **coverage**: does any engine return the correct source URL at all,
+/// and at what position in the raw (pre-scoring) merged result list?
+///
+/// This is the lower bound on what any scoring strategy can achieve — if the URL never
+/// appears in any engine's raw results, no amount of reranking can surface it.
+///
+/// Output rows:
+///   url-recall@1   — correct URL was the #1 result in the fused raw list
+///   url-recall@5   — correct URL in top 5
+///   url-recall@<k> — correct URL in top k (configurable via --at-k)
+///   url-recall@∞   — correct URL appeared anywhere (coverage)
+///   coverage-gap   — correct URL was never returned by any engine
+fn run_url_recall(args: UrlRecallArgs) -> Result<()> {
+    let cache_files = load_cache_files(&args.cache)?;
+    if cache_files.is_empty() {
+        anyhow::bail!("cache directory contains no JSON files");
+    }
+    let at_k = args.at_k.max(1);
+
+    // Collect all k thresholds we want to report (always include 1, 5, 10, at_k, ∞).
+    // We store results per cutoff without re-scanning.
+    let report_ks: Vec<usize> = {
+        let mut ks = vec![1usize, 5, 10, at_k];
+        ks.dedup();
+        ks.sort_unstable();
+        ks.dedup();
+        ks
+    };
+
+    let mut pass_at: HashMap<usize, usize> = report_ks.iter().map(|&k| (k, 0)).collect();
+    let mut pass_inf = 0usize; // covered by any engine at any rank
+    let mut total_evaluated = 0usize;
+    let mut skipped_engine_fail = 0usize;
+
+    // Per-question raw rank across all engines (RRF-fused by appearance order, no scoring).
+    // We collect all unique URLs in the order they appear across engines, deduplicated.
+    for cache in &cache_files {
+        // Skip questions where all engines hard-failed.
+        let all_empty = cache.engine_results.values().all(Vec::is_empty);
+        if all_empty {
+            skipped_engine_fail += 1;
+            continue;
+        }
+        total_evaluated += 1;
+
+        // Build a raw fused list: interleave engine results round-robin, dedup by
+        // normalized URL. This is a simple appearance-order merge (no score weighting)
+        // so we measure raw engine coverage, not scoring quality.
+        let raw_urls = raw_union_urls(cache);
+
+        // Check each cutoff.
+        let rank = raw_urls
+            .iter()
+            .position(|u| normalize_url_for_eval(u) == normalize_url_for_eval(&cache.source_url))
+            .map(|idx| idx + 1); // 1-indexed
+
+        if let Some(r) = rank {
+            pass_inf += 1;
+            for &k in &report_ks {
+                if r <= k {
+                    *pass_at.entry(k).or_insert(0) += 1;
+                }
+            }
+        }
+    }
+
+    let total = cache_files.len();
+    let gap = total_evaluated.saturating_sub(pass_inf);
+
+    println!(
+        "split:        {} ({} questions)",
+        split_name(&args.cache),
+        total
+    );
+    if skipped_engine_fail > 0 {
+        eprintln!(
+            "note: {} questions had no results from any engine",
+            skipped_engine_fail
+        );
+    }
+    println!();
+
+    for &k in &report_ks {
+        let hits = pass_at[&k];
+        println!(
+            "url-recall@{: <2}  {:.1}%   ({} / {})",
+            k,
+            percent(hits, total),
+            hits,
+            total
+        );
+    }
+    println!(
+        "url-recall@∞   {:.1}%   ({} / {})   ← correct URL appeared anywhere in results",
+        percent(pass_inf, total),
+        pass_inf,
+        total
+    );
+    println!(
+        "coverage gap:   {:.1}%   ({} / {})   ← correct URL not surfaced by any engine",
+        percent(total.saturating_sub(pass_inf), total),
+        total.saturating_sub(pass_inf),
+        total
+    );
+
+    Ok(())
+}
+
+/// Build a deduplicated, interleaved union of all engine result URLs for a cached question.
+///
+/// This is a round-robin merge that preserves relative engine order without any score weighting.
+/// The result represents raw engine coverage — what URLs were returned at all, in what order
+/// they first appeared across engines.
+fn raw_union_urls(cache: &CacheFile) -> Vec<String> {
+    // Collect per-engine URL lists in deterministic order (BTreeMap gives this).
+    let engine_url_lists: Vec<Vec<String>> = cache
+        .engine_results
+        .values()
+        .map(|records| records.iter().map(|r| r.url.clone()).collect())
+        .collect();
+
+    let max_len = engine_url_lists.iter().map(Vec::len).max().unwrap_or(0);
+    let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut merged: Vec<String> = Vec::new();
+
+    // Round-robin interleave: position 0 of each engine, then position 1, etc.
+    for pos in 0..max_len {
+        for list in &engine_url_lists {
+            if let Some(url) = list.get(pos) {
+                let norm = normalize_url_for_eval(url);
+                if seen.insert(norm) {
+                    merged.push(url.clone());
+                }
+            }
+        }
+    }
+
+    merged
 }
 
 fn run_tune(args: TuneArgs) -> Result<()> {
@@ -727,5 +881,97 @@ mod tests {
     fn split_name_prefers_file_stem() {
         let path = Path::new("/tmp/regression_ref.jsonl");
         assert_eq!(split_name(path), "regression_ref");
+    }
+
+    /// raw_union_urls should interleave engine results round-robin and deduplicate.
+    #[test]
+    fn raw_union_urls_interleaves_and_deduplicates() {
+        use ripweb::search::eval_types::SearchResultRecord;
+        let mut engine_results = BTreeMap::new();
+
+        // Engine A returns [a, b, c]
+        engine_results.insert(
+            "engine_a".to_owned(),
+            vec![
+                SearchResultRecord {
+                    url: "https://a.com".to_owned(),
+                    title: String::new(),
+                    snippet: None,
+                },
+                SearchResultRecord {
+                    url: "https://b.com".to_owned(),
+                    title: String::new(),
+                    snippet: None,
+                },
+                SearchResultRecord {
+                    url: "https://c.com".to_owned(),
+                    title: String::new(),
+                    snippet: None,
+                },
+            ],
+        );
+
+        // Engine B returns [a, d] — a is a duplicate, d is new
+        engine_results.insert(
+            "engine_b".to_owned(),
+            vec![
+                SearchResultRecord {
+                    url: "https://a.com".to_owned(),
+                    title: String::new(),
+                    snippet: None,
+                },
+                SearchResultRecord {
+                    url: "https://d.com".to_owned(),
+                    title: String::new(),
+                    snippet: None,
+                },
+            ],
+        );
+
+        let cache = CacheFile {
+            question: "test".to_owned(),
+            source_url: "https://d.com".to_owned(),
+            answer: String::new(),
+            engine_results,
+            cached_at: "0".to_owned(),
+            exit_code: Some(0),
+        };
+
+        let union = raw_union_urls(&cache);
+        // BTreeMap orders engine_a before engine_b.
+        // Round-robin: pos0 → a.com, a.com (dup skip) → a.com first, then b.com (pos1 engine_a),
+        // d.com (pos1 engine_b), then c.com (pos2 engine_a).
+        // Expected order: a, b, d, c
+        assert_eq!(
+            union,
+            vec![
+                "https://a.com",
+                "https://b.com",
+                "https://d.com",
+                "https://c.com",
+            ]
+        );
+
+        // d.com appears at position 3 (1-indexed), within @3 but not @2
+        let rank = union
+            .iter()
+            .position(|u| normalize_url_for_eval(u) == normalize_url_for_eval("https://d.com"))
+            .map(|i| i + 1);
+        assert_eq!(rank, Some(3));
+    }
+
+    /// A question where no engine returns the source URL should contribute to coverage-gap.
+    #[test]
+    fn raw_union_urls_returns_empty_on_no_results() {
+        let cache = CacheFile {
+            question: "obscure question".to_owned(),
+            source_url: "https://obscure.example.com/page".to_owned(),
+            answer: String::new(),
+            engine_results: BTreeMap::new(),
+            cached_at: "0".to_owned(),
+            exit_code: Some(4),
+        };
+        let union = raw_union_urls(&cache);
+        assert!(union.is_empty());
     }
 }

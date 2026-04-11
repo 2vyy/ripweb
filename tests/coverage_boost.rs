@@ -35,8 +35,7 @@ fn classify_force_url_prepends_https() {
 #[test]
 fn classify_github_issue_parses_issue_url() {
     let cli = Cli::parse_from(["ripweb", "https://github.com/owner/repo/issues/42"]);
-    let (url, _q, stype, domain) =
-        classify_source(&cli, "https://github.com/owner/repo/issues/42");
+    let (url, _q, stype, domain) = classify_source(&cli, "https://github.com/owner/repo/issues/42");
     assert_eq!(stype, "github");
     assert_eq!(domain.as_deref(), Some("github.com"));
     assert!(url.unwrap().contains("issues/42"));
