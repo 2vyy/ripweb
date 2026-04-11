@@ -3,8 +3,8 @@
 //! These functions were moved out of `main.rs` so integration tests can exercise
 //! the CLI-level helpers without spawning a child process.
 
-use std::io::{self, Write};
 use indicatif::ProgressBar;
+use std::io::{self, Write};
 use tracing_subscriber::EnvFilter;
 
 use crate::cli::Cli;
