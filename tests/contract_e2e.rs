@@ -24,15 +24,23 @@ fn fixture_html(name: &str) -> Vec<u8> {
     }
     // Map known large/sample fixtures to a stable generic alternative.
     let mapped = match name {
-        "ars_technica.html" | "github_issue.html" | "amazon_product.html" | "reddit_thread.json" | "wikipedia_rust.json" | "youtube_oembed.json" | "hn_item.json" => Some("tests/extraction/generic/bloated_generic.html"),
+        "ars_technica.html"
+        | "github_issue.html"
+        | "amazon_product.html"
+        | "reddit_thread.json"
+        | "wikipedia_rust.json"
+        | "youtube_oembed.json"
+        | "hn_item.json" => Some("tests/extraction/generic/bloated_generic.html"),
         "stackoverflow_accepted.html" => Some("tests/extraction/generic/huge_article.html"),
         _ => None,
     };
     if let Some(path) = mapped {
-        return std::fs::read(path).unwrap_or_else(|e| panic!("fixture not found at {} or {}: {}", apostle, path, e));
+        return std::fs::read(path)
+            .unwrap_or_else(|e| panic!("fixture not found at {} or {}: {}", apostle, path, e));
     }
     let fallback = format!("tests/extraction/generic/{name}");
-    std::fs::read(&fallback).unwrap_or_else(|e| panic!("fixture not found at {} or {}: {}", apostle, fallback, e))
+    std::fs::read(&fallback)
+        .unwrap_or_else(|e| panic!("fixture not found at {} or {}: {}", apostle, fallback, e))
 }
 
 async fn serve_html(server: &MockServer, url_path: &str, html: Vec<u8>) {
