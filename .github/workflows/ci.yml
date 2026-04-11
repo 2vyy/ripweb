@@ -66,8 +66,6 @@ jobs:
         run: cargo insta test --unreferenced=reject
 
   coverage:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: check-and-test
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
@@ -79,19 +77,19 @@ jobs:
         uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: stable
-          components: clippy, rustfmt
 
       - name: Cache target directory and registry
         uses: Swatinem/rust-cache@v2
 
       - name: Install cargo-tarpaulin
-        run: cargo install --locked cargo-tarpaulin
+        uses: taiki-e/install-action@cargo-tarpaulin
 
       - name: Run Tarpaulin (coverage)
-        run: cargo tarpaulin --all-features --out Lcov --run-types Tests --fail-under 70
+        run: cargo tarpaulin --all-features --out Xml --run-types Tests --fail-under 70
 
-      - name: (Optional) Upload coverage to Codecov
-        if: env.CODECOV_TOKEN != ''
-        uses: codecov/codecov-action@v4
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
         with:
-          files: ./tarpaulin-lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./cobertura.xml
+          fail_ci_if_error: true
