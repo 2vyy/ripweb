@@ -12,26 +12,27 @@ use sha2::{Digest, Sha256};
 
 use super::normalize::normalize;
 
-pub const MAX_CACHE_AGE: Duration = Duration::from_secs(24 * 60 * 60);
+// MAX_CACHE_AGE is now configurable via RipwebConfig or CLI.
 
 /// Disk-backed URL response cache.  Cache files are named by SHA-256 of the
 /// normalised URL, keeping the filesystem flat and collision-free.
 pub struct Cache {
     dir: PathBuf,
+    ttl: Duration,
 }
 
 impl Cache {
-    /// Create a cache rooted at `dir`.  The directory is created on first write.
-    pub fn new(dir: PathBuf) -> Self {
-        Self { dir }
+    /// Create a cache rooted at `dir` with a specific `ttl`.
+    /// The directory is created on first write.
+    pub fn new(dir: PathBuf, ttl: Duration) -> Self {
+        Self { dir, ttl }
     }
 
     /// Build a `Cache` using the XDG-compliant cache directory for ripweb
-    /// (`~/.cache/ripweb` on Linux).  Returns `None` if the path cannot be
-    /// determined.
-    pub fn xdg() -> Option<Self> {
+    /// (`~/.cache/ripweb` on Linux) and a specific `ttl`.
+    pub fn xdg(ttl: Duration) -> Option<Self> {
         let dirs = ProjectDirs::from("", "", "ripweb")?;
-        Some(Self::new(dirs.cache_dir().to_path_buf()))
+        Some(Self::new(dirs.cache_dir().to_path_buf(), ttl))
     }
 
     /// Return cached bytes for `url` if the entry exists and is < 24 hours old.
@@ -41,7 +42,7 @@ impl Cache {
         let meta = tokio::fs::metadata(&path).await.ok()?;
         let modified = meta.modified().ok()?;
         let age = SystemTime::now().duration_since(modified).ok()?;
-        if age > MAX_CACHE_AGE {
+        if age > self.ttl {
             return None;
         }
 
@@ -62,5 +63,33 @@ impl Cache {
         let canonical = normalize(url).unwrap_or_else(|| url.to_owned());
         let hash = hex::encode(Sha256::digest(canonical.as_bytes()));
         self.dir.join(hash)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    #[tokio::test]
+    async fn test_cache_ttl() {
+        let dir = tempdir().unwrap();
+        let ttl = Duration::from_secs(1);
+        let cache = Cache::new(dir.path().to_path_buf(), ttl);
+
+        let url = "https://example.com/ttl";
+        let content = b"test content";
+
+        // Initial put
+        cache.put(url, content).await.unwrap();
+
+        // Immediate get -> HIT
+        assert!(cache.get(url).await.is_some());
+
+        // Wait for expiration
+        tokio::time::sleep(Duration::from_secs(2)).await;
+
+        // Get after expiry -> MISS
+        assert!(cache.get(url).await.is_none());
     }
 }

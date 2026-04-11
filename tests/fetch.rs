@@ -4,7 +4,7 @@
 use std::time::Duration;
 
 use ripweb::fetch::{
-    cache::{Cache, MAX_CACHE_AGE},
+    cache::Cache,
     client::{FetchError, RetryConfig, build_client, fetch_with_retry},
     llms_txt::fetch_llms_txt,
 };
@@ -25,7 +25,7 @@ fn fast_retry() -> RetryConfig {
 
 fn temp_cache() -> (TempDir, Cache) {
     let dir = TempDir::new().unwrap();
-    let cache = Cache::new(dir.path().to_path_buf());
+    let cache = Cache::new(dir.path().to_path_buf(), Duration::from_secs(86400));
     (dir, cache)
 }
 
@@ -193,7 +193,7 @@ async fn cache_stale_entry_returns_none() {
     cache.put(url, b"old content").await.unwrap();
 
     let path = cache.cache_path(url);
-    let old_time = std::time::SystemTime::now() - (MAX_CACHE_AGE + Duration::from_secs(3600));
+    let old_time = std::time::SystemTime::now() - Duration::from_secs(86400 * 2); // 2 days ago
     let ft = filetime::FileTime::from_system_time(old_time);
     filetime::set_file_mtime(&path, ft).unwrap();
 

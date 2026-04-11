@@ -16,6 +16,7 @@ use tiktoken_rs::cl100k_base;
 use ripweb::{
     cli::Cli,
     cli_utils::{finish_spinner, maybe_track, setup_tracing, write_stdout},
+    config::get_config,
     error::RipwebError,
     fetch::{RetryConfig, cache::Cache, client::build_client, politeness::DomainSemaphores},
     research::wayback::validate_date,
@@ -77,8 +78,11 @@ async fn main() -> anyhow::Result<()> {
         }
     });
 
+    let config = get_config();
+    let cache_ttl = Duration::from_secs(cli.cache_ttl.unwrap_or(config.cache.ttl_seconds));
+
     let result = tokio::select! {
-        r = dispatch(&cli, input, &client, RetryConfig::default(), DomainSemaphores::new(3), Cache::xdg().map(Arc::new)) => r,
+        r = dispatch(&cli, input, &client, RetryConfig::default(), DomainSemaphores::new(3), Cache::xdg(cache_ttl).map(Arc::new)) => r,
         _ = tokio::signal::ctrl_c() => {
             finish_spinner(&spinner);
             let _ = io::stdout().flush();
