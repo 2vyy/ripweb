@@ -42,3 +42,15 @@ eval-search-regression:
 # Run LLM tool-use evaluation benchmarks
 eval model="local-model" url="http://localhost:8080":
     cargo run --bin eval -- --model {{model}} --api-url {{url}}
+
+# Start local SearXNG infrastructure
+searx-up:
+    bash searxng/setup.sh
+
+# Stop local SearXNG infrastructure
+searx-down:
+    bash searxng/teardown.sh
+
+# View SearXNG logs
+searx-logs:
+    cd ~/.config/ripweb/searxng && docker compose logs -f
