@@ -59,9 +59,13 @@ struct CacheArgs {
     #[arg(long)]
     out: PathBuf,
 
-    /// Maximum number of rows to process.
+    /// Maximum questions to cache (optional).
     #[arg(long)]
-    limit: Option<usize>,
+    pub limit: Option<usize>,
+
+    /// Cache TTL in seconds. Eval caches are permanent by default.
+    #[arg(long, default_value = "18446744073709551615")]
+    pub ttl: u64,
 }
 
 #[derive(Args, Debug)]
@@ -169,6 +173,27 @@ async fn run_cache(args: CacheArgs) -> Result<()> {
         .context("failed to construct HTTP client")?;
 
     for (idx, row) in rows.iter().enumerate() {
+        let output_path = args.out.join(format!("{}.json", sha256_hex(&row.question)));
+
+        // Benchmarking caches are intentionaly permanent by default to ensure
+        // consistent offline evaluation. We only re-fetch if the TTL has expired.
+        if let Some(age) = fs::metadata(&output_path)
+            .ok()
+            .and_then(|m| m.modified().ok())
+            .and_then(|m| std::time::SystemTime::now().duration_since(m).ok())
+            .filter(|&age| age.as_secs() < args.ttl)
+        {
+            eprintln!(
+                "[{}/{}] skipping cached ({} < {}) {}",
+                idx + 1,
+                rows.len(),
+                age.as_secs(),
+                args.ttl,
+                row.question
+            );
+            continue;
+        }
+
         let (searxng_res, ddg_res, marginalia_res) = tokio::join!(
             searxng::search(&client, &searxng_url, &row.question, ENGINE_LIMIT),
             duckduckgo::search(&client, &row.question, ENGINE_LIMIT),

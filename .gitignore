@@ -5,3 +5,4 @@
 *.csv.worktrees/
 *.csv
 docs/superpowers/*
+corpus/cache/*

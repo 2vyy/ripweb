@@ -92,6 +92,10 @@ pub struct Cli {
     #[arg(short = 'c', long)]
     pub copy: bool,
 
+    /// Cache Time-To-Live in seconds (default: 604800 / 7 days)
+    #[arg(long, value_name = "SECONDS")]
+    pub cache_ttl: Option<u64>,
+
     /// Purge the XDG cache directory and exit
     #[arg(long)]
     pub clean_cache: bool,

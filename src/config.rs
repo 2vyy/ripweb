@@ -20,6 +20,8 @@ pub struct RipwebConfig {
     pub extract: ExtractConfig,
     #[serde(default)]
     pub search: SearchConfig,
+    #[serde(default)]
+    pub cache: CacheConfig,
 }
 
 // ── Extract config (unchanged) ────────────────────────────────────────────────
@@ -64,6 +66,26 @@ pub struct SearchConfig {
     pub blocklist: BlocklistConfig,
     #[serde(default, alias = "weights")]
     pub scoring: ScoringWeights,
+}
+
+// ── Cache config (new) ────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct CacheConfig {
+    #[serde(default = "default_ttl")]
+    pub ttl_seconds: u64,
+}
+
+impl Default for CacheConfig {
+    fn default() -> Self {
+        Self {
+            ttl_seconds: default_ttl(),
+        }
+    }
+}
+
+fn default_ttl() -> u64 {
+    604800 // 7 days
 }
 
 /// Domain trust tiers. Domains in `high` get a strong score boost;
