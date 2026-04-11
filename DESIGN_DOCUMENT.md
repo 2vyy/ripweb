@@ -706,7 +706,7 @@ The install script must:
 ### One-command SearXNG setup
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/2vyy/ripweb/main/searxng/setup.sh | bash
+bash searxng/setup.sh
 ```
 
 This script:

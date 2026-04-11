@@ -1,0 +1,29 @@
+use_default_settings: true
+
+server:
+  secret_key: "change-this-to-any-random-string"
+  bind_address: "127.0.0.1:8080"  # localhost only — not exposed to network
+
+search:
+  safe_search: 0
+  formats:
+    - html
+    - json              # ← this line is what makes ripweb work
+
+engines:
+  - name: google
+    engine: google
+    disabled: false
+  - name: bing
+    engine: bing
+    disabled: false
+  - name: duckduckgo
+    engine: duckduckgo
+    disabled: false
+  - name: wikipedia
+    engine: wikipedia
+    disabled: false
+
+ui:
+  infinite_scroll: false
+  default_theme: simple
