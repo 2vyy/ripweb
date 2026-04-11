@@ -1,3 +1,0 @@
-url = "https://hn.algolia.com/api/v1/items/8863"
-fetched_at = "2026-04-08"
-notes = "HN item 8863 via Algolia API — original Dropbox thread. Tests parse_hn_json."

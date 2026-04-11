@@ -20,7 +20,7 @@ impl Extractor for WebExtractor {
             return Err(RipwebError::InputTooLarge(bytes.len()));
         }
         let html = decode_charset(bytes, content_type);
-        Ok(extract_from_str(&html, None))
+        Ok(extract_from_str(&html, None, false))
     }
 }
 
@@ -30,15 +30,24 @@ impl WebExtractor {
         content_type: Option<&str>,
         source_url: Option<&str>,
     ) -> Result<String, RipwebError> {
+        Self::extract_with_url_options(bytes, content_type, source_url, false)
+    }
+
+    pub fn extract_with_url_options(
+        bytes: &[u8],
+        content_type: Option<&str>,
+        source_url: Option<&str>,
+        tables_priority: bool,
+    ) -> Result<String, RipwebError> {
         if bytes.len() > MAX_INPUT_BYTES {
             return Err(RipwebError::InputTooLarge(bytes.len()));
         }
         let html = decode_charset(bytes, content_type);
-        Ok(extract_from_str(&html, source_url))
+        Ok(extract_from_str(&html, source_url, tables_priority))
     }
 }
 
-fn extract_from_str(html: &str, source_url: Option<&str>) -> String {
+fn extract_from_str(html: &str, source_url: Option<&str>, tables_priority: bool) -> String {
     let dom = match tl::parse(html, tl::ParserOptions::default()) {
         Ok(d) => d,
         Err(_) => return String::new(),
@@ -49,7 +58,7 @@ fn extract_from_str(html: &str, source_url: Option<&str>) -> String {
         .unwrap_or(PageFamily::Generic);
     let family = detect_family(&dom, url_hint);
 
-    let text = extract_best_candidate(&dom, family);
+    let text = extract_best_candidate(&dom, family, tables_priority);
     let text = super::postprocess::post_process(family, &dom, text);
 
     if word_count(&text) < 100

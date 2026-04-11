@@ -76,9 +76,11 @@ domains = [
     "programiz.com",
 ]
 
-[search.weights]
+[search.scoring]
 domain_trust = 1.0
 url_pattern = 0.8
 project_match = 1.2
 snippet_relevance = 0.6
 domain_diversity = 0.5
+blocklist_penalty = 1.0
+rrf_k = 60.0

@@ -80,7 +80,7 @@ pub fn score_text(text: &str) -> TextStats {
     stats
 }
 
-pub fn extract_best_candidate(dom: &tl::VDom, family: PageFamily) -> String {
+pub fn extract_best_candidate(dom: &tl::VDom, family: PageFamily, tables_priority: bool) -> String {
     let parser = dom.parser();
     let mut best: Option<ScoredCandidate> = None;
 
@@ -91,7 +91,10 @@ pub fn extract_best_candidate(dom: &tl::VDom, family: PageFamily) -> String {
                     continue;
                 };
                 if let Some(tag) = node.as_tag() {
-                    consider_candidate(&mut best, score_candidate(tag, parser, family, 0));
+                    consider_candidate(
+                        &mut best,
+                        score_candidate(tag, parser, family, 0, tables_priority),
+                    );
                 }
             }
         }
@@ -103,7 +106,10 @@ pub fn extract_best_candidate(dom: &tl::VDom, family: PageFamily) -> String {
                     continue;
                 };
                 if let Some(tag) = node.as_tag() {
-                    consider_candidate(&mut best, score_candidate(tag, parser, family, 1));
+                    consider_candidate(
+                        &mut best,
+                        score_candidate(tag, parser, family, 1, tables_priority),
+                    );
                 }
             }
         }
@@ -116,7 +122,10 @@ pub fn extract_best_candidate(dom: &tl::VDom, family: PageFamily) -> String {
                 };
                 if let Some(tag) = node.as_tag() {
                     // hinted divs can be at any depth; assign a moderate baseline depth
-                    consider_candidate(&mut best, score_candidate(tag, parser, family, 2));
+                    consider_candidate(
+                        &mut best,
+                        score_candidate(tag, parser, family, 2, tables_priority),
+                    );
                 }
             }
         }
@@ -124,7 +133,10 @@ pub fn extract_best_candidate(dom: &tl::VDom, family: PageFamily) -> String {
     if let Some(body_handle) = dom.query_selector("body").and_then(|mut hits| hits.next())
         && let Some(body_tag) = body_handle.get(parser).and_then(|node| node.as_tag())
     {
-        consider_candidate(&mut best, score_candidate(body_tag, parser, family, 5));
+        consider_candidate(
+            &mut best,
+            score_candidate(body_tag, parser, family, 5, tables_priority),
+        );
     }
 
     best.map(|c| c.text)
@@ -148,6 +160,7 @@ fn score_candidate(
     // depth: approximate search-depth from document root — penalises wrapper-heavy nesting.
     // Pass 0 for `<main>`/`<article>` (highest priority), larger values for fallbacks.
     depth: u32,
+    tables_priority: bool,
 ) -> Option<ScoredCandidate> {
     let name = tag.name().as_utf8_str().to_ascii_lowercase();
     if should_strip_subtree(tag) || NUKE_TAGS.contains(&name.as_str()) {
@@ -208,7 +221,13 @@ fn score_candidate(
         }
         "section" => 20,
         "div" => 10,
-        "table" => 12,
+        "table" => {
+            if tables_priority {
+                80
+            } else {
+                12
+            }
+        }
         "body" => -40,
         _ => 0,
     };

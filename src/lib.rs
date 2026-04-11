@@ -10,9 +10,10 @@ pub mod error;
 pub mod extract;
 pub mod fetch;
 pub mod minify;
-pub mod mode;
+pub mod research;
 pub mod router;
 pub mod run;
 pub mod search;
+pub mod verbosity;
 
 pub use error::RipwebError;

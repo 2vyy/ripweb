@@ -1,0 +1,20 @@
+{
+  "head": {
+    "vars": [
+      "item",
+      "itemLabel"
+    ]
+  },
+  "results": {
+    "bindings": [
+      {
+        "item": {
+          "value": "http://www.wikidata.org/entity/Q42"
+        },
+        "itemLabel": {
+          "value": "Douglas Adams"
+        }
+      }
+    ]
+  }
+}

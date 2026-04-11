@@ -5,24 +5,11 @@
 //! (e.g., conflicting search/URL flags).
 
 use clap::Parser;
+use std::path::PathBuf;
 
-use crate::mode::Mode;
+use crate::verbosity::{OutputFormat, Verbosity};
 
-/// Which search backend to use when the input is a query (not a URL).
-#[derive(clap::ValueEnum, Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub enum SearchEngine {
-    /// DuckDuckGo HTML SERP (default, no setup required)
-    #[default]
-    Ddg,
-    /// SearXNG metasearch instance (requires --searxng-url)
-    Searxng,
-    /// Marginalia indie/non-SEO web search (public demo key, no config)
-    Marginalia,
-    /// Fan-out: query DDG + Marginalia in parallel, fuse with RRF
-    FanOut,
-}
-
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Clone)]
 #[command(
     name = "ripweb",
     about = "Fast, local, privacy-respecting CLI for generating LLM context from the web",
@@ -30,7 +17,7 @@ pub enum SearchEngine {
 )]
 pub struct Cli {
     /// URL or search query (required unless --clean-cache is used)
-    #[arg(required_unless_present = "clean_cache")]
+    #[arg(required_unless_present_any = ["clean_cache", "batch", "wikidata"])]
     pub query_or_url: Option<String>,
 
     /// Force URL mode — treat input as a URL even without an http:// scheme
@@ -41,19 +28,48 @@ pub struct Cli {
     #[arg(short = 'q', long = "query", conflicts_with = "force_url")]
     pub force_query: bool,
 
-    /// Search engine backend to use for queries
-    ///
-    /// ddg (default): DuckDuckGo HTML scrape, no setup required
-    /// searxng: SearXNG metasearch — requires --searxng-url
-    /// marginalia: indie/non-SEO web — public demo key, no config
-    #[arg(long, value_enum, default_value_t = SearchEngine::Ddg)]
-    pub engine: SearchEngine,
+    /// Output density (compact | standard | full)
+    #[arg(long, value_enum, default_value_t = Verbosity::Standard)]
+    pub verbosity: Verbosity,
 
-    /// SearXNG instance base URL (required when --engine=searxng)
-    ///
-    /// Example public instances: https://searx.be, https://search.disroot.org
-    /// Self-host with Docker for best reliability and no rate limits.
-    #[arg(long, default_value = "")]
+    /// Output format (md | plain | structured)
+    #[arg(long, value_enum, default_value_t = OutputFormat::Md)]
+    pub format: OutputFormat,
+
+    /// JSONL session log path. Appends one structured record per invocation.
+    #[arg(long, value_name = "FILE")]
+    pub track: Option<PathBuf>,
+
+    /// Comma-separated search terms to filter output blocks.
+    #[arg(long, value_name = "TERMS")]
+    pub find: Option<String>,
+
+    /// Read newline-delimited URLs from stdin and fetch concurrently.
+    #[arg(long, conflicts_with_all = ["force_url", "force_query", "wikidata"])]
+    pub batch: bool,
+
+    /// Execute a SPARQL query against Wikidata.
+    #[arg(
+        long,
+        value_name = "SPARQL",
+        conflicts_with_all = ["force_url", "force_query", "batch"]
+    )]
+    pub wikidata: Option<String>,
+
+    /// Fetch nearest Wayback snapshot to this date (YYYY-MM-DD).
+    #[arg(long, value_name = "DATE", conflicts_with = "force_query")]
+    pub as_of: Option<String>,
+
+    /// Scope search query to a single domain via site: operator.
+    #[arg(long, value_name = "DOMAIN", requires = "force_query")]
+    pub site: Option<String>,
+
+    /// Prioritize and preserve HTML tables in extraction.
+    #[arg(long)]
+    pub tables: bool,
+
+    /// SearXNG instance base URL
+    #[arg(long, default_value = "http://localhost:8080")]
     pub searxng_url: String,
 
     /// Maximum crawl depth from the seed URL
@@ -65,14 +81,8 @@ pub struct Cli {
     pub max_pages: usize,
 
     /// Allow pushing data through a cloud extraction parser (like Jina)
-    ///
-    /// Automatically enabled for --mode omega-verbose and --mode aggressive.
     #[arg(long, default_value_t = false)]
     pub allow_cloud: bool,
-
-    /// Output mode controlling information density (see Output Contract)
-    #[arg(long, value_enum, default_value_t = Mode::Balanced)]
-    pub mode: Mode,
 
     /// Dry run: count tokens and print a size summary instead of outputting text
     #[arg(long)]

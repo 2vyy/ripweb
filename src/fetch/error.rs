@@ -21,3 +21,29 @@ impl std::fmt::Display for FetchError {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::fetch::client::build_client;
+
+    #[test]
+    fn display_messages_for_rate_limited_and_server_error() {
+        assert_eq!(
+            FetchError::RateLimited.to_string(),
+            "rate-limited after max retries"
+        );
+        assert_eq!(
+            FetchError::ServerError(503).to_string(),
+            "server error 503 after max retries"
+        );
+    }
+
+    #[tokio::test]
+    async fn display_message_for_network_error_variant() {
+        let client = build_client().unwrap();
+        let err = client.get("::not-a-url::").send().await.unwrap_err();
+        let display = FetchError::Network(err).to_string();
+        assert!(display.starts_with("network error: "));
+    }
+}

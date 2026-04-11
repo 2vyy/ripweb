@@ -1,4 +1,7 @@
-use ripweb::search::{SearchResult, fusion::rrf_fuse};
+use ripweb::search::{
+    SearchResult,
+    fusion::{rrf_fuse, rrf_fuse_with_k},
+};
 
 fn r(url: &str) -> SearchResult {
     SearchResult {
@@ -73,12 +76,15 @@ fn rrf_fuse_case_insensitive_scheme_and_host() {
     );
 }
 
-// Compile-time check that FanOut variant exists on SearchEngine.
 #[test]
-fn fan_out_engine_variant_exists() {
-    use ripweb::cli::SearchEngine;
-    let engine = SearchEngine::FanOut;
-    assert!(format!("{engine:?}").contains("FanOut"));
+fn rrf_fuse_with_custom_k_still_prioritizes_consensus_urls() {
+    let ddg = vec![r("https://tokio.rs"), r("https://docs.rs/tokio")];
+    let marginalia = vec![r("https://tokio.rs"), r("https://example.com")];
+    let fused = rrf_fuse_with_k(&[("ddg", ddg), ("marginalia", marginalia)], 10.0);
+    assert_eq!(
+        fused.first().map(|r| r.url.as_str()),
+        Some("https://tokio.rs")
+    );
 }
 
 #[test]

@@ -10,6 +10,7 @@ use rquest::Client;
 pub use super::error::FetchError;
 
 /// Retry policy handed to [`fetch_with_retry`].
+#[derive(Clone, Copy)]
 pub struct RetryConfig {
     /// Maximum number of retry attempts (not counting the first try).
     pub max_retries: u32,

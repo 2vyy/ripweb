@@ -32,7 +32,7 @@ mod tests {
 
     #[test]
     fn loads_regression_fixture() {
-        let queries = load_benchmark("tests/fixtures/search/eval/regression.jsonl");
+        let queries = load_benchmark("tests/search/eval/regression.jsonl");
         assert_eq!(queries.len(), 5, "regression fixture must have 5 entries");
         assert!(!queries[0].query.is_empty());
         assert!(!queries[0].gold_urls.is_empty());
@@ -41,7 +41,7 @@ mod tests {
 
     #[test]
     fn loads_techdocs_fixture() {
-        let queries = load_benchmark("tests/fixtures/search/eval/techdocs_bench.jsonl");
+        let queries = load_benchmark("tests/search/eval/techdocs_bench.jsonl");
         assert_eq!(queries.len(), 5, "techdocs fixture must have 5 entries");
         for q in &queries {
             assert!(

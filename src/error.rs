@@ -41,3 +41,38 @@ impl From<FetchError> for RipwebError {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::fetch::client::build_client;
+
+    #[test]
+    fn exit_codes_match_cli_contract() {
+        assert_eq!(RipwebError::Config("x".into()).exit_code(), 1);
+        assert_eq!(RipwebError::Network("x".into()).exit_code(), 2);
+        assert_eq!(RipwebError::Blocked.exit_code(), 3);
+        assert_eq!(RipwebError::NoContent.exit_code(), 4);
+        assert_eq!(RipwebError::InputTooLarge(10).exit_code(), 4);
+    }
+
+    #[test]
+    fn fetch_error_conversion_maps_rate_limits_and_statuses() {
+        let blocked = RipwebError::from(FetchError::RateLimited);
+        assert!(matches!(blocked, RipwebError::Blocked));
+
+        let forbidden = RipwebError::from(FetchError::ServerError(403));
+        assert!(matches!(forbidden, RipwebError::Blocked));
+
+        let upstream = RipwebError::from(FetchError::ServerError(502));
+        assert!(matches!(upstream, RipwebError::Network(msg) if msg == "HTTP 502"));
+    }
+
+    #[tokio::test]
+    async fn fetch_error_conversion_maps_network_errors() {
+        let client = build_client().unwrap();
+        let net_err = client.get("::not-a-url::").send().await.unwrap_err();
+        let mapped = RipwebError::from(FetchError::Network(net_err));
+        assert!(matches!(mapped, RipwebError::Network(_)));
+    }
+}

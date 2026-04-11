@@ -1,3 +1,0 @@
-url = "https://www.reddit.com/r/rust/comments/27jvdt/what_is_rust_bad_at.json?limit=10"
-fetched_at = "2026-04-08"
-notes = "Reddit JSON API response for a popular r/rust thread. Tests parse_reddit_json. (Original cdg5v4 thread returned 404; using 27jvdt instead.)"

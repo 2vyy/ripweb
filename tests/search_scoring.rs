@@ -15,7 +15,7 @@ fn search_config_has_docs_rs_as_high_trust_by_default() {
 fn search_config_has_nonzero_domain_trust_weight() {
     let cfg = ripweb::config::get_config();
     assert!(
-        cfg.search.weights.domain_trust > 0.0,
+        cfg.search.scoring.domain_trust > 0.0,
         "domain_trust weight must be positive"
     );
 }

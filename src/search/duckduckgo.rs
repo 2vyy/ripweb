@@ -1,8 +1,7 @@
-//! DuckDuckGo HTML Search
+//! DuckDuckGo Lite Search
 //!
-//! Scrapes the non-JS `html.duckduckgo.com` endpoint to retrieve
-//! Search Engine Result Page (SERP) data including titles, links,
-//! and snippets.
+//! Scrapes the non-JS `lite.duckduckgo.com/lite/` endpoint to retrieve
+//! search result titles and destination URLs.
 
 use url::Url;
 
@@ -17,9 +16,9 @@ pub enum DdgError {
     Parse(#[from] url::ParseError),
 }
 
-/// Build the DDG HTML search endpoint URL for `query`.
+/// Build the DDG Lite search endpoint URL for `query`.
 pub fn ddg_search_url(query: &str) -> Result<Url, url::ParseError> {
-    let mut url = Url::parse("https://html.duckduckgo.com/html/")?;
+    let mut url = Url::parse("https://lite.duckduckgo.com/lite/")?;
     url.query_pairs_mut().append_pair("q", query);
     Ok(url)
 }
@@ -35,34 +34,49 @@ pub fn parse_ddg_html(html: &str, limit: usize) -> Vec<super::SearchResult> {
     };
     let parser = dom.parser();
 
-    let Some(anchors) = dom.query_selector("a.result__a") else {
-        return Vec::new();
-    };
-
     let mut results = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    let selectors = ["a.result-link", "a.result__a", "a"];
 
-    for handle in anchors {
-        if results.len() >= limit {
-            break;
-        }
-
-        let Some(node) = handle.get(parser) else {
-            continue;
-        };
-        let Some(tag) = node.as_tag() else { continue };
-        let Some(href_val) = tag.attributes().get("href").flatten() else {
+    for selector in selectors {
+        let Some(anchors) = dom.query_selector(selector) else {
             continue;
         };
 
-        let href = href_val.as_utf8_str();
-        let title = tag.inner_text(parser).into_owned();
+        for handle in anchors {
+            if results.len() >= limit {
+                break;
+            }
 
-        if let Some(decoded) = decode_ddg_href(href.as_ref()) {
+            let Some(node) = handle.get(parser) else {
+                continue;
+            };
+            let Some(tag) = node.as_tag() else { continue };
+            let Some(href_val) = tag.attributes().get("href").flatten() else {
+                continue;
+            };
+
+            let href = href_val.as_utf8_str();
+            let title = tag.inner_text(parser).trim().to_owned();
+            if title.is_empty() {
+                continue;
+            }
+
+            let Some(decoded) = decode_ddg_href(href.as_ref()) else {
+                continue;
+            };
+            if !seen.insert(decoded.clone()) {
+                continue;
+            }
+
             results.push(super::SearchResult {
                 url: decoded,
                 title,
                 snippet: None,
             });
+        }
+        if !results.is_empty() {
+            break;
         }
     }
 

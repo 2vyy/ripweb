@@ -23,6 +23,8 @@ pub struct CrawlerConfig {
     pub max_depth: u32,
     /// Hard cap on total pages fetched (including the seed).
     pub max_pages: usize,
+    /// Boost table-heavy candidates in extractor scoring.
+    pub tables_priority: bool,
 }
 
 impl Default for CrawlerConfig {
@@ -30,6 +32,7 @@ impl Default for CrawlerConfig {
         Self {
             max_depth: 1,
             max_pages: 10,
+            tables_priority: false,
         }
     }
 }
@@ -113,11 +116,20 @@ impl Crawler {
             }
 
             let html = String::from_utf8_lossy(&page.bytes);
-            let content = WebExtractor::extract_with_url(
-                &page.bytes,
-                page.content_type.as_deref(),
-                Some(&url_str),
-            )
+            let content = if self.config.tables_priority {
+                WebExtractor::extract_with_url_options(
+                    &page.bytes,
+                    page.content_type.as_deref(),
+                    Some(&url_str),
+                    true,
+                )
+            } else {
+                WebExtractor::extract_with_url(
+                    &page.bytes,
+                    page.content_type.as_deref(),
+                    Some(&url_str),
+                )
+            }
             .unwrap_or_else(|e| {
                 tracing::warn!("extraction failed for {}: {}", url_str, e);
                 String::new()
