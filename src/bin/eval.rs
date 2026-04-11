@@ -373,7 +373,6 @@ fn run_url_recall(args: UrlRecallArgs) -> Result<()> {
 
     let mut pass_at: HashMap<usize, usize> = report_ks.iter().map(|&k| (k, 0)).collect();
     let mut pass_inf = 0usize; // covered by any engine at any rank
-    let mut total_evaluated = 0usize;
     let mut skipped_engine_fail = 0usize;
 
     // Per-question raw rank across all engines (RRF-fused by appearance order, no scoring).
@@ -385,7 +384,6 @@ fn run_url_recall(args: UrlRecallArgs) -> Result<()> {
             skipped_engine_fail += 1;
             continue;
         }
-        total_evaluated += 1;
 
         // Build a raw fused list: interleave engine results round-robin, dedup by
         // normalized URL. This is a simple appearance-order merge (no score weighting)
@@ -409,7 +407,6 @@ fn run_url_recall(args: UrlRecallArgs) -> Result<()> {
     }
 
     let total = cache_files.len();
-    let gap = total_evaluated.saturating_sub(pass_inf);
 
     println!(
         "split:        {} ({} questions)",
