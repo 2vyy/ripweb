@@ -1,3 +1,4 @@
+use clap::Parser;
 use ripweb::cli::Cli;
 use ripweb::cli_utils::{classify_source, unix_timestamp_seconds};
 

@@ -4,15 +4,9 @@
 //! the CLI-level helpers without spawning a child process.
 
 use std::io::{self, Write};
-use std::path::Path;
-use std::sync::Arc;
-use std::time::Duration;
-
 use indicatif::ProgressBar;
-use tracing_subscriber::EnvFilter;
 
 use crate::cli::Cli;
-use crate::error::RipwebError;
 use crate::research::find::{matched_terms_in_text, parse_terms};
 use crate::research::track::append_jsonl;
 use crate::router::{GitHubRouteType, PlatformRoute, Route, route};
@@ -189,7 +183,6 @@ pub fn classify_source(
                 let domain = url.host_str().map(|host| host.to_owned());
                 (Some(url.to_string()), None, "generic".to_owned(), domain)
             }
-            _ => (Some(input.to_owned()), None, "url".to_owned(), None),
         },
     }
 }
