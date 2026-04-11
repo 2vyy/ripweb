@@ -4,7 +4,7 @@ use ripweb::cli_utils::{classify_source, unix_timestamp_seconds};
 
 #[test]
 fn classify_wikidata_returns_wikidata_type() {
-    let cli = Cli::parse_from(&["ripweb", "--wikidata", "Q"]);
+    let cli = Cli::parse_from(["ripweb", "--wikidata", "Q"]);
     let (url, q, stype, domain) = classify_source(&cli, "ignored");
     assert_eq!(stype, "wikidata");
     assert_eq!(domain.as_deref(), Some("wikidata.org"));
@@ -14,7 +14,7 @@ fn classify_wikidata_returns_wikidata_type() {
 
 #[test]
 fn classify_batch_returns_batch_type() {
-    let cli = Cli::parse_from(&["ripweb", "--batch"]);
+    let cli = Cli::parse_from(["ripweb", "--batch"]);
     let (url, q, stype, domain) = classify_source(&cli, "anything");
     assert_eq!(stype, "batch");
     assert!(url.is_none());
@@ -24,7 +24,7 @@ fn classify_batch_returns_batch_type() {
 
 #[test]
 fn classify_force_url_prepends_https() {
-    let cli = Cli::parse_from(&["ripweb", "example.com", "--url"]);
+    let cli = Cli::parse_from(["ripweb", "example.com", "--url"]);
     let (url, q, stype, domain) = classify_source(&cli, "example.com");
     assert_eq!(stype, "generic");
     assert_eq!(q, None);
@@ -34,8 +34,9 @@ fn classify_force_url_prepends_https() {
 
 #[test]
 fn classify_github_issue_parses_issue_url() {
-    let cli = Cli::parse_from(&["ripweb", "https://github.com/owner/repo/issues/42"]);
-    let (url, q, stype, domain) = classify_source(&cli, "https://github.com/owner/repo/issues/42");
+    let cli = Cli::parse_from(["ripweb", "https://github.com/owner/repo/issues/42"]);
+    let (url, _q, stype, domain) =
+        classify_source(&cli, "https://github.com/owner/repo/issues/42");
     assert_eq!(stype, "github");
     assert_eq!(domain.as_deref(), Some("github.com"));
     assert!(url.unwrap().contains("issues/42"));

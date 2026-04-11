@@ -12,18 +12,13 @@ use clap::Parser;
 use indicatif::{ProgressBar, ProgressStyle};
 use is_terminal::IsTerminal;
 use tiktoken_rs::cl100k_base;
-use tracing_subscriber::EnvFilter;
 
 use ripweb::{
     cli::Cli,
+    cli_utils::{finish_spinner, maybe_track, setup_tracing, write_stdout},
     error::RipwebError,
     fetch::{RetryConfig, cache::Cache, client::build_client, politeness::DomainSemaphores},
-    research::{
-        find::{matched_terms_in_text, parse_terms},
-        track::{SessionEntry, append_jsonl},
-        wayback::validate_date,
-    },
-    router::{GitHubRouteType, PlatformRoute, Route, route},
+    research::wayback::validate_date,
     run::dispatch,
 };
 
@@ -146,8 +141,3 @@ async fn main() -> anyhow::Result<()> {
     write_stdout("\n");
     Ok(())
 }
-
-use ripweb::cli_utils::{
-    classify_source, finish_spinner, maybe_track, setup_tracing, unix_timestamp_seconds,
-    write_stdout,
-};
