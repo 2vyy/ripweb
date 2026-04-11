@@ -5,6 +5,7 @@
 
 use std::io::{self, Write};
 use indicatif::ProgressBar;
+use tracing_subscriber::EnvFilter;
 
 use crate::cli::Cli;
 use crate::research::find::{matched_terms_in_text, parse_terms};
